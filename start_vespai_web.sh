@@ -1,3 +1,9 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:10e22602b81757c17f470599a9922eef2f93e334e3943517b37a033b7d2f1d13
-size 180
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+cd "$SCRIPT_DIR"
+source "$SCRIPT_DIR/.venv/bin/activate"
+
+python vespai.py --web

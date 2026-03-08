@@ -1,3 +1,327 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:e8b0061424d8dd2b8fa538b1687d0cf7d74f615eb2b95da84f489aae00c757c2
-size 11156
+<!DOCTYPE html>
+<!-- VespAI Legacy Dashboard Template (Backup)
+     Author: Jakob Zeise (Zeise Digital) -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VespAI - Hornet Detection System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .video-section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .video-stream {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .stats-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .velutina { color: #ff4444; }
+        .crabro { color: #44ff44; }
+        .total { color: #ffaa44; }
+        
+        .system-stats {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .system-stats h3 {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .system-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .detections-section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .detection-log {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .detection-item {
+            background: rgba(255,255,255,0.1);
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #44ff44;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .detection-item:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .detection-item.velutina {
+            border-left-color: #ff4444;
+        }
+        
+        .detection-time {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        .status-bar {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            text-align: center;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #44ff44;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐝 VespAI Detection System</h1>
+            <p>Real-time Asian & European Hornet Detection</p>
+        </div>
+        
+        <div class="main-grid">
+            <div class="video-section">
+                <h2 style="margin-bottom: 15px;">📹 Live Camera Feed</h2>
+                <div class="video-container">
+                    <img src="/video_feed" alt="Live Video Feed" class="video-stream">
+                </div>
+            </div>
+            
+            <div class="stats-section">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value velutina" id="velutina-count">0</div>
+                        <div class="stat-label">Asian Hornets</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value crabro" id="crabro-count">0</div>
+                        <div class="stat-label">European Hornets</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value total" id="total-count">0</div>
+                        <div class="stat-label">Total Detections</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="fps">0</div>
+                        <div class="stat-label">FPS</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color: #ff6600 !important;" id="sms-count">0</div>
+                        <div class="stat-label">SMS Alerts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color: #ff6600 !important;" id="sms-cost">0.00€</div>
+                        <div class="stat-label">SMS Costs</div>
+                    </div>
+                </div>
+                
+                <div class="system-stats">
+                    <h3>📊 System Status</h3>
+                    <div class="system-grid">
+                        <div>CPU: <span id="cpu-usage">0%</span></div>
+                        <div>RAM: <span id="ram-usage">0%</span></div>
+                        <div>Temp: <span id="cpu-temp">0°C</span></div>
+                        <div>Uptime: <span id="uptime">0s</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="detections-section">
+            <h2>📋 Recent Detections</h2>
+            <div class="detection-log" id="detection-log">
+                <p style="opacity: 0.7; text-align: center;">No detections yet...</p>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <span class="status-indicator"></span>
+            System Active - Monitoring for hornets...
+        </div>
+    </div>
+
+    <script>
+        function updateStats() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('velutina-count').textContent = data.total_velutina;
+                    document.getElementById('crabro-count').textContent = data.total_crabro;
+                    document.getElementById('total-count').textContent = data.total_detections;
+                    document.getElementById('fps').textContent = data.fps.toFixed(1);
+                    document.getElementById('sms-count').textContent = data.sms_sent;
+                    document.getElementById('sms-cost').textContent = data.sms_cost.toFixed(2) + '€';
+                    
+                    // Update system stats
+                    document.getElementById('cpu-usage').textContent = data.cpu_usage.toFixed(1) + '%';
+                    document.getElementById('ram-usage').textContent = data.ram_usage.toFixed(1) + '%';
+                    document.getElementById('cpu-temp').textContent = data.cpu_temp.toFixed(1) + '°C';
+                    
+                    // Format uptime
+                    const uptime = data.uptime;
+                    const hours = Math.floor(uptime / 3600);
+                    const minutes = Math.floor((uptime % 3600) / 60);
+                    document.getElementById('uptime').textContent = `${hours}h ${minutes}m`;
+                    
+                    // Update detection log
+                    const logDiv = document.getElementById('detection-log');
+                    if (data.detection_log && data.detection_log.length > 0) {
+                        logDiv.innerHTML = '';
+                        data.detection_log.slice(-10).reverse().forEach(detection => {
+                            const item = document.createElement('div');
+                            item.className = `detection-item ${detection.species === 'velutina' ? 'velutina' : 'crabro'}`;
+                            item.onclick = () => window.open(`/frame/${detection.frame_id}`, '_blank');
+                            item.innerHTML = `
+                                <strong>${detection.species === 'velutina' ? '🐝 Asian Hornet' : '🐛 European Hornet'}</strong>
+                                <div class="detection-time">${detection.timestamp} - Confidence: ${detection.confidence}%</div>
+                            `;
+                            logDiv.appendChild(item);
+                        });
+                    }
+                })
+                .catch(error => console.error('Error fetching stats:', error));
+        }
+        
+        // Update every 2 seconds
+        setInterval(updateStats, 2000);
+        updateStats(); // Initial load
+    </script>
+</body>
+</html>

@@ -1,3 +1,20 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:9b7657552075d37654734c3c93d2c91d1d7636fb220e8ef929f5a35ad98ba43e
-size 539
+[Unit]
+Description=VespAI Web Dashboard
+After=network.target
+
+[Service]
+Type=simple
+PermissionsStartOnly=true
+User=sysadmin
+Group=sysadmin
+WorkingDirectory=/home/sysadmin/vespai
+ExecStartPre=/usr/bin/mkdir -p /home/sysadmin/vespai/logs
+ExecStartPre=/usr/bin/touch /home/sysadmin/vespai/logs/vespai.log
+ExecStartPre=/usr/bin/chown sysadmin:sysadmin /home/sysadmin/vespai/logs/vespai.log
+ExecStart=/home/sysadmin/vespai/start_vespai_web.sh
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

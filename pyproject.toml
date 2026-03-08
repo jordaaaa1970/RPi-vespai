@@ -1,3 +1,10 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:aeb1ec2a77f48853b37b3903366c57d29e8b2d334ce26c40d20fc398f4c54301
-size 196
+[project]
+name = "vespai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "ipykernel>=7.2.0",
+    "pip>=26.0.1",
+]

@@ -1,3 +1,30 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:15a5f16774be9ff6292bfda670d12e61fa1c08dcf86b0f1c0aa51d89f4fb80a1
-size 1410
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- VespAI Shield Favicon - Author: Jakob Zeise (Zeise Digital) -->
+  <defs>
+    <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6600;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffa500;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Rounded square background matching logo -->
+  <rect x="2" y="2" width="28" height="28" rx="6" ry="6" fill="url(#shieldGradient)" filter="url(#glow)"/>
+  
+  <!-- Shield icon path -->
+  <path d="M16 4 C12 4, 8 6, 8 10 L8 16 C8 22, 12 26, 16 28 C20 26, 24 22, 24 16 L24 10 C24 6, 20 4, 16 4 Z" 
+        fill="rgba(255,255,255,0.9)" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+  
+  <!-- Inner shield details -->
+  <path d="M16 6 C13 6, 10 7.5, 10 10.5 L10 15.5 C10 20, 13 23, 16 25 C19 23, 22 20, 22 15.5 L22 10.5 C22 7.5, 19 6, 16 6 Z" 
+        fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
+  
+  <!-- Central V for VespAI -->
+  <path d="M13 12 L16 20 L19 12" stroke="url(#shieldGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

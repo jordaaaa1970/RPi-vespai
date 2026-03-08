@@ -1,3 +1,10 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:993350ed609ddffd3c36f68ef3a215a00b18e055f972807c3a1a8855b5dfd690
-size 269
+{
+  "model_name": "yolov8_asianhornet",
+  "model_type": "YOLOv8",
+  "format": "ONNX",
+  "timestamp": "2026-03-06_19-45-38",
+  "input_shape": "(None, None, None, 3)",
+  "batch_size": 4,
+  "max_boxes": 50,
+  "onnx_file": "L4-yolov8_asianhornet_2026-03-06_19-45-38.onnx"
+}

@@ -1,3 +1,4 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:57a705124ba3a4dfc325e6e6d4d62b9b9ec01d209cb627d21fdb0d9b300be780
-size 373
+/monitor/detections
+__pycache__
+/logs
+.env

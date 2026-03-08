@@ -1,3 +1,8 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:d6a9b408f549f4c3eb99ef0e5649710111fae896e165bf0c00c3889e691aeb0b
-size 155
+"""
+VespAI - Hornet Detection System
+
+A modular hornet detection system using YOLOv5 computer vision.
+"""
+
+__version__ = "1.0.0"
+__author__ = "VespAI Team"

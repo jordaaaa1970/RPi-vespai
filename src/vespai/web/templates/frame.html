@@ -1,3 +1,216 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:75478a40a8491d9c5877f3071c6ea08067f0f83ea4392c37c53a89d72d6ffc24
-size 6243
+<!DOCTYPE html>
+<!-- VespAI Detection Frame Template
+     Author: Jakob Zeise (Zeise Digital) -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VespAI - Detection Frame</title>
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon-16.svg" sizes="16x16">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .frame-container {
+            max-width: 95vw;
+            width: fit-content;
+            border: 2px solid #444;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #333;
+        }
+
+        .meta-card {
+            width: min(95vw, 900px);
+            background: #242424;
+            border: 1px solid #444;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .meta-label {
+            color: #a8a8a8;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .meta-value {
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            word-break: break-word;
+        }
+        
+        .frame-image {
+            max-width: 95vw;
+            max-height: 85vh;
+            width: auto;
+            height: auto;
+            display: block;
+            object-fit: contain;
+            background: #333;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #ccc;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #333;
+        }
+        
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .frame-container {
+                max-width: 98vw;
+                width: fit-content;
+                margin: 0 auto;
+            }
+            
+            .frame-image {
+                max-width: 98vw;
+                max-height: 70vh;
+                width: auto;
+                height: auto;
+            }
+            
+            .actions {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .btn {
+                width: 200px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🐝 VespAI Detection</h1>
+        <p>Detection Frame: {{ frame_id }}</p>
+    </div>
+
+    {% if detection_info %}
+    <div class="meta-card">
+        <div class="meta-grid">
+            <div class="meta-item">
+                <div class="meta-label">Name</div>
+                <div class="meta-value">{{ detection_info.name }}</div>
+            </div>
+            <div class="meta-item">
+                <div class="meta-label">Class</div>
+                <div class="meta-value">{{ detection_info.class_id }}</div>
+            </div>
+            <div class="meta-item">
+                <div class="meta-label">Confidence</div>
+                <div class="meta-value">{{ detection_info.confidence }}%</div>
+            </div>
+            <div class="meta-item">
+                <div class="meta-label">Time</div>
+                <div class="meta-value">{{ detection_info.timestamp }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="frame-container">
+        <div class="loading" id="loading">Loading frame...</div>
+        <img src="{{ image_data_url or ('/api/detection_frame/' ~ frame_id) }}" alt="Detection Frame" class="frame-image" 
+             onload="document.getElementById('loading').style.display='none'" 
+             onerror="document.getElementById('loading').innerHTML='Failed to load frame'"
+             style="display: none;">
+    </div>
+    
+    <script>
+        // Show image when loaded
+        const img = document.querySelector('.frame-image');
+        img.onload = function() {
+            document.getElementById('loading').style.display = 'none';
+            img.style.display = 'block';
+        };
+        img.onerror = function() {
+            document.getElementById('loading').innerHTML = 'Failed to load detection frame';
+        };
+    </script>
+    
+    <div class="actions">
+        <a href="/" class="btn">📊 Back to Dashboard</a>
+        <a href="/api/detection_frame/{{ frame_id }}" class="btn btn-secondary" download="detection_{{ frame_id }}.jpg">💾 Download Image</a>
+    </div>
+</body>
+</html>

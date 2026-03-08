@@ -1,3 +1,26 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:35e5fb933e77a5585e3080b40d5339eb7544e6b9d79b317ed3e0e1d4c14b077c
-size 1330
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 16" width="24" height="16">
+  <!-- US Flag SVG - Author: Jakob Zeise (Zeise Digital) -->
+  <rect width="24" height="16" fill="#ffffff"/>
+  <rect y="0" width="24" height="1.23" fill="#B22234"/>
+  <rect y="2.46" width="24" height="1.23" fill="#B22234"/>
+  <rect y="4.92" width="24" height="1.23" fill="#B22234"/>
+  <rect y="7.38" width="24" height="1.23" fill="#B22234"/>
+  <rect y="9.84" width="24" height="1.23" fill="#B22234"/>
+  <rect y="12.3" width="24" height="1.23" fill="#B22234"/>
+  <rect y="14.76" width="24" height="1.24" fill="#B22234"/>
+  <rect width="9.6" height="8.6" fill="#3C3B6E"/>
+  <circle cx="2" cy="2" r="0.3" fill="white"/>
+  <circle cx="4" cy="2" r="0.3" fill="white"/>
+  <circle cx="6" cy="2" r="0.3" fill="white"/>
+  <circle cx="8" cy="2" r="0.3" fill="white"/>
+  <circle cx="3" cy="3.5" r="0.3" fill="white"/>
+  <circle cx="5" cy="3.5" r="0.3" fill="white"/>
+  <circle cx="7" cy="3.5" r="0.3" fill="white"/>
+  <circle cx="2" cy="5" r="0.3" fill="white"/>
+  <circle cx="4" cy="5" r="0.3" fill="white"/>
+  <circle cx="6" cy="5" r="0.3" fill="white"/>
+  <circle cx="8" cy="5" r="0.3" fill="white"/>
+  <circle cx="3" cy="6.5" r="0.3" fill="white"/>
+  <circle cx="5" cy="6.5" r="0.3" fill="white"/>
+  <circle cx="7" cy="6.5" r="0.3" fill="white"/>
+</svg>

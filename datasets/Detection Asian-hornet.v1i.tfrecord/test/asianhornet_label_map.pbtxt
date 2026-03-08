@@ -1,3 +1,20 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:cba05ed3ecf6372cee57dad5f3b844fd3101579d452872a75f37debcd286cb6b
-size 286
+item {
+    name: "Bee",
+    id: 1,
+    display_name: "Bee"
+}
+item {
+    name: "Vespa-Crabro",
+    id: 2,
+    display_name: "Vespa-Crabro"
+}
+item {
+    name: "Vespa-Velutina",
+    id: 3,
+    display_name: "Vespa-Velutina"
+}
+item {
+    name: "Wasp",
+    id: 4,
+    display_name: "Wasp"
+}

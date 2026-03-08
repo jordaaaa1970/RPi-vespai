@@ -1,3 +1,216 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:69975fe1900ba49a6e2e8ca92e9021e9d55df004b517ddbf6d65099ae4e64fb5
-size 10472
+<!DOCTYPE html>
+<!-- VespAI Dashboard Template
+     Author: Jakob Zeise (Zeise Digital) -->
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VespAI Monitor - Live Dashboard</title>
+
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon-16.svg" sizes="16x16">
+    <link rel="apple-touch-icon" href="/static/img/favicon.svg" sizes="180x180">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css?t={{ timestamp }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h1>VespAI Monitor</h1>
+            </div>
+
+            <div class="status-bar">
+                <div class="language-selector">
+                    <button class="lang-btn active" data-lang="en" title="English">
+                        <img src="/static/img/us-flag.svg" alt="US Flag" class="flag-img">
+                        <span class="lang-text">EN</span>
+                    </button>
+                    <button class="lang-btn" data-lang="de" title="Deutsch">
+                        <img src="/static/img/de-flag.svg" alt="German Flag" class="flag-img">
+                        <span class="lang-text">DE</span>
+                    </button>
+                    <button class="lang-btn" data-lang="fr" title="Français">
+                        <img src="/static/img/fr-flag.svg" alt="French Flag" class="flag-img">
+                        <span class="lang-text">FR</span>
+                    </button>
+                </div>
+                <div class="status-item">
+                    <div class="live-indicator"></div>
+                    <span data-key="live">Live</span>
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-clock"></i>
+                    <span id="current-time"></span>
+                </div>
+                <div class="status-item compact-stat">
+                    <i class="fas fa-comment-dots"></i>
+                    <span data-key="sms-alerts">SMS Alerts</span>
+                    <strong id="sms-count-mini">0</strong>
+                </div>
+                <div class="status-item compact-stat">
+                    <i class="fas fa-euro-sign"></i>
+                    <span data-key="sms-costs">SMS Costs</span>
+                    <strong id="sms-cost-mini">0.00€</strong>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Container -->
+    <div class="container">
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <!-- 1. Bilder Verarbeitet (Grün) -->
+            <div class="stat-card">
+                <div class="stat-value" style="color: #00ff88 !important;" id="frame-count">0</div>
+                <div class="stat-label" data-key="frames-processed">Frames Processed</div>
+                <div class="stat-detail">&nbsp;</div>
+            </div>
+
+            <!-- 2. Gesamt Erkennungen (Grün) -->
+            <div class="stat-card">
+                <div class="stat-value" style="color: #00ff88 !important;" id="total-detections">0</div>
+                <div class="stat-label" data-key="total-detections">Total Detections</div>
+                <div class="stat-detail" id="detection-rate">0<span data-key="per-hour">/h</span></div>
+            </div>
+
+            <!-- 3. Vespa Velutina (Rot) -->
+            <div class="stat-card">
+                <div class="stat-value" style="color: #ff0040 !important;" id="velutina-count">0</div>
+                <div class="stat-label" data-key="vespa-velutina">Vespa Velutina</div>
+                <div class="stat-detail" id="velutina-last">-</div>
+            </div>
+
+            <!-- 4. Vespa Crabro (Rot) -->
+            <div class="stat-card">
+                <div class="stat-value" style="color: #ff0040 !important;" id="crabro-count">0</div>
+                <div class="stat-label" data-key="vespa-crabro">Vespa Crabro</div>
+                <div class="stat-detail" id="crabro-last">-</div>
+            </div>
+
+            <!-- 5. Bee -->
+            <div class="stat-card">
+                <div class="stat-value" style="color: #00d4ff !important;" id="bee-count">0</div>
+                <div class="stat-label" data-key="bee-class">Bee</div>
+                <div class="stat-detail" id="bee-last">-</div>
+            </div>
+
+            <!-- 6. Wasp -->
+            <div class="stat-card">
+                <div class="stat-value" style="color: #ffa500 !important;" id="wasp-count">0</div>
+                <div class="stat-label" data-key="wasp-class">Wasp</div>
+                <div class="stat-detail" id="wasp-last">-</div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Video Container -->
+            <div class="video-container">
+                <div class="video-header">
+                    <h2 data-key="live-detection-feed">Live Detection Feed</h2>
+                    <div class="video-controls">
+                        <div class="fps-display">
+                            <i class="fas fa-chart-line"></i>
+                            <span id="fps">0 FPS</span>
+                        </div>
+                        <button id="source-toggle" class="live-badge" type="button" title="Toggle input source">
+                            <span id="source-mode-text">LIVE</span>
+                        </button>
+                        <button class="fullscreen-btn" onclick="toggleFullscreen()">
+                            <i class="fas fa-expand"></i> <span data-key="fullscreen">Fullscreen</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="stat-detail" id="frame-source" style="margin: 0 0 0.75rem 0.2rem; color: #c7f9cc; font-size: 0.9rem;">
+                    Source: waiting...
+                </div>
+                <div class="stat-detail" id="model-debug" style="margin: -0.45rem 0 0.75rem 0.2rem; color: #9fb3c8; font-size: 0.82rem; justify-content: flex-start;">
+                    Model: waiting...
+                </div>
+                <img src="/video_feed" alt="Live Feed" class="video-feed" id="video-feed">
+            </div>
+
+            <!-- Detection Log -->
+            <div class="detection-log">
+                <div class="log-header">
+                    <h3><i class="fas fa-list"></i> <span data-key="detection-log">Detection Log</span></h3>
+                </div>
+                <div style="padding: 0.5rem 0.75rem 0.25rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                    <div id="preview-label" style="font-size: 0.78rem; color: #9fb3c8; margin-bottom: 0.35rem;">Current Source Preview</div>
+                    <img id="source-preview" alt="Current Source Preview" style="width: 100%; max-height: 130px; object-fit: contain; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.25);" />
+                </div>
+                <div class="log-content" id="log-content">
+                    <!-- Logs will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Hourly Chart -->
+        <div class="chart-card">
+            <h3 style="margin-bottom: 1rem;" id="chart-title">
+                <i class="fas fa-chart-bar" style="color: var(--honey);"></i> 
+                <span class="chart-title-text">Detections per Hour (Last 24h)</span>
+            </h3>
+            <div class="time-chart" id="hourly-chart">
+                <!-- Chart bars will be inserted here -->
+            </div>
+        </div>
+
+        <!-- System Info -->
+        <div class="system-info">
+            <div class="system-stat">
+                <div class="system-value" id="cpu-temp">0°C</div>
+                <div class="system-label" data-key="cpu-temp">CPU Temp</div>
+            </div>
+            <div class="system-stat">
+                <div class="system-value" id="cpu-usage">0%</div>
+                <div class="system-label" data-key="cpu-usage">CPU Usage</div>
+            </div>
+            <div class="system-stat">
+                <div class="system-value" id="ram-usage">0%</div>
+                <div class="system-label" data-key="ram-usage">RAM Usage</div>
+            </div>
+            <div class="system-stat">
+                <div class="system-value" id="uptime-sys">0h 0m</div>
+                <div class="system-label" data-key="uptime">Uptime</div>
+            </div>
+        </div>
+
+        <div class="chart-card inference-card">
+            <h3 style="margin-bottom: 1rem;" id="inference-chart-title">
+                <i class="fas fa-tachometer-alt" style="color: var(--info);"></i>
+                <span data-key="inference-chart-title">Recent Inference Time per Image</span>
+            </h3>
+            <div class="inference-meta-line">
+                <span data-key="cpu-temp-inline">CPU Temp</span>
+                <strong id="inference-cpu-temp">0°C</strong>
+            </div>
+            <div class="inference-meta-line inference-summary-line">
+                <span data-key="inference-avg-inline">Avg</span>
+                <strong id="inference-avg">0 ms</strong>
+                <span data-key="inference-min-inline">Min</span>
+                <strong id="inference-min">0 ms</strong>
+                <span data-key="inference-max-inline">Max</span>
+                <strong id="inference-max">0 ms</strong>
+            </div>
+            <div class="inference-chart-wrap">
+                <div class="inference-y-axis" id="inference-y-axis">
+                    <!-- Inference timing scale will be inserted here -->
+                </div>
+                <div class="inference-chart" id="inference-chart">
+                    <!-- Inference timing bars will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js?t={{ timestamp }}"></script>
+</body>
+</html>
