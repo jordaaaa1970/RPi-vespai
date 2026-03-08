@@ -26,6 +26,10 @@ RPi-VespAI uses a YOLOv8 deep learning trained model to identify and differentia
 
 ## 🚀 Quick Start
 
+This will propably work on a normal PC with Linux. However its been designed and tested for Raspberry Pi 5.
+A normal USB WebCam e.g Logitech can work
+The Raspberry Pi Camera can work with a few code changes
+
 ### Option 1: One-Click Setup (Recommended)
 
 **Raspberry Pi:**
@@ -37,8 +41,8 @@ chmod +x scripts/raspberry-pi-setup.sh
 ```bash
 # Clone to home directory (recommended for permissions)
 cd ~
-git clone https://github.com/jakobzeise/vespai.git
-cd vespai
+git clone https://github.com/jordaaaa1970/RPi-vespai
+cd RPi-vespai
 
 # Create and activate virtual environment
 python3 -m venv .venv
@@ -48,10 +52,10 @@ source .venv/bin/activate
 python scripts/setup.py
 python vespai.py --web --resolution 720p --motion
 ```
+📋 **For complete installation instructions including Raspberry Pi setup, see [docs/INSTALL.md](docs/INSTALL.md)**
 
 
 ### 2. Run the System
-
 
 ```bash
 # Basic usage with web interface
@@ -67,7 +71,8 @@ python vespai.py --web --resolution 720p --motion --conf 0.7
 ### 3. Access Dashboard
 Open your browser to: `http://localhost:8081`
 
-📋 **For complete installation instructions including Raspberry Pi setup, see [docs/INSTALL.md](docs/INSTALL.md)**
+PS: To get a demo: Click on the Red Live button in the Live Feed. This will change the feed from Camera to the Dataset, streaming images from the dataset into the detector with results then logged as if running live.
+
 
 ## Configuration
 
