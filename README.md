@@ -118,3 +118,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Lox24 SMS API
 - Flask web framework
 - OpenCV computer vision library
+
+---
+# Special Thanks
+**Prof. Dr. Guido Salvanesch and the Swiss Cyber Institute**
+Thanks for all The AI Courses and inspiration
+
