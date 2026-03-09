@@ -15,21 +15,39 @@ cp .env.template .env
 
 ```bash
 # SMS Configuration (Lox24 API)
-LOX24_API_KEY=your_customer_number:your_api_key
-LOX24_SENDER=VespAI
-PHONE_NUMBER=+1234567890
-SMS_DELAY_MINUTES=5
-ENABLE_SMS=true
+# VespAI Configuration
+# Copy to .env and customize for your setup
 
-# Web Server
-DOMAIN_NAME=localhost
-USE_HTTPS=false
+# SMS Alert Configuration (Optional)
+# LOX24_API_KEY=your_api_key_here
+# PHONE_NUMBER=+1234567890
+# DOMAIN_NAME=your-domain.com
 
-# Detection
-CONFIDENCE_THRESHOLD=0.8
-VESPAI_CLASS_MAP=0:crabro,1:velutina
-# For the current ONNX dataset model used in this repository:
-# VESPAI_CLASS_MAP=1:crabro,2:velutina
-SAVE_DETECTIONS=false
+# Model Configuration
+MODEL_PATH=models/L4-yolov8_asianhornet_2026-03-06_19-45-38.onnx
+CONFIDENCE_THRESHOLD=0.6
+VESPAI_CLASS_MAP=1:crabro,2:velutina
+VESPAI_DATASET_PATH=datasets/Detection Asian-hornet.v1i.tfrecord/test/asianhornet.tfrecord
+
+# Camera Configuration
+CAMERA_INDEX=0
+VESPAI_CAMERA_DEVICE=/dev/video8
+RESOLUTION=1280x720
+CAMERA_RESOLUTION=1280x720
+CAMERA_FPS=30
+
+# Detection Configuration
+SAVE_DETECTIONS=true
 SAVE_DIRECTORY=monitor/detections
+DETECTION_RETENTION_DAYS=21
+FRAME_DELAY=0.35
+DATASET_FRAME_DELAY=5.0
+
+# Motion Detection (Optional)
+ENABLE_MOTION_DETECTION=false
+MIN_MOTION_AREA=5000
+
+# Web Interface
+WEB_HOST=0.0.0.0
+WEB_PORT=8081
 ```
