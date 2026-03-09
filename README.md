@@ -24,7 +24,9 @@ RPi-VespAI uses a YOLOv8 deep learning trained model to identify and differentia
 
 ---
 
-![Web UI Screenshot](docs/images/Web-UI.png)
+![Web UI Screenshot](docs/images/Web-UI-1.png)
+
+![Web UI Screenshot - Performance](docs/images/Web-UI-2.png)
 
 ---
 
