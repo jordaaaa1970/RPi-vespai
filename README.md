@@ -22,6 +22,9 @@ RPi-VespAI uses a YOLOv8 deep learning trained model to identify and differentia
 - ⚡ **Performance Optimized**: Non-blocking operations, data caching, reduced API calls
 - 🏗️ **Modular Architecture**: Clean, maintainable codebase with separation of concerns
 
+---
+
+![Web UI Screenshot](docs/images/Web-UI.png)
 
 ---
 
