@@ -4,7 +4,7 @@
 
 VespAI uses a specialized YOLOv8 model trained specifically for hornet detection:
 
-- **Model**: `yolov5s-all-data.pt` (14MB)
+- **Model**: `yolov8` (14MB)
 - **Classes**: 
   - **0**: Vespa crabro (European hornet)
   - **1**: Vespa velutina (Asian hornet - invasive)

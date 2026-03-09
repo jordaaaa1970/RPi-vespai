@@ -41,7 +41,7 @@ The Raspberry Pi Camera can work with a few code changes
 The installation is based on PyTorch and the installation process will install all the required dependencies
 - **Python**: 3.7+ (3.9+ recommended for Raspberry Pi)  
 - The system was developed on Python 3.13 as the default with the Debian distro.
-- 
+
 
 ### 2. Installation
 Refer to the Install.md doc under the docs folder
@@ -62,19 +62,19 @@ PS: To get a **demo**: Click on the Red Live button in the Live Feed. This will 
 
 ---
 
-### Security Considerations
+# Security Considerations
 - Never commit `.env` files to git
 - Use strong SMS API credentials
 - Consider VPN access for remote monitoring
 - Regular security updates on Pi OS
 
-### Performance Optimization
+# Performance Optimization
 - Use motion detection (`--motion`) to reduce CPU usage
 - Adjust confidence threshold based on your environment
 - Consider GPU acceleration for better performance (if on a PC)
 - Monitor system resources via dashboard
 
-### Testing
+## Testing
 - Test with various lighting conditions
 - Verify SMS delivery and costs
 - Check web interface on mobile devices
