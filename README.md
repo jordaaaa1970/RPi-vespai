@@ -78,7 +78,7 @@ PS: To get a **demo**: Click on the Red Live button in the Live Feed. This will 
 - Adjust confidence threshold based on your environment
 - Consider GPU acceleration for better performance (if on a PC)
 - Monitor system resources via dashboard
-- Moving from a YOLOv8 Model to YOLO26 reduced the inference time taken from 2700ms down to around 1700ms using a USB Webcam and down to <450ms using the Pi Camera Module 3
+- Moving from a YOLOv8 Model to YOLO26 reduced the inference time taken from 2700ms down to around 1700ms using a USB Webcam and down to <500ms using the Pi Camera Module 3
 
 
 ## Testing
