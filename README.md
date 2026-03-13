@@ -2,7 +2,7 @@
 
 🐝 **Vesp detection system** with real-time computer vision, web dashboard, and SMS alerts and Push Notification (To be tested).
 
-The system is designed to be running on a Raspberry Pi 5 with a camera (USB).
+The system is designed to run on a Raspberry Pi 5 with either a USB camera or a Raspberry Pi Camera Module.
 RPi-VespAI uses a YOLOv8 deep learning trained model to identify and differentiate between Asian hornets (Vespa velutina) and European hornets (Vespa crabro) in real-time. 
 
 **Based on the research:** *VespAI: a deep learning-based system for the detection of invasive hornets* published in Communications Biology (2024). DOI: [10.1038/s42003-024-05979-z](https://doi.org/10.1038/s42003-024-05979-z)
@@ -36,7 +36,7 @@ RPi-VespAI uses a YOLOv8 deep learning trained model to identify and differentia
 This will probably work on a normal PC with Linux. 
 However its been designed and tested for Raspberry Pi 5 with the goal to make it self contained running on a battery and solar charger.
 For the camera: A normal USB WebCam e.g Logitech can work.
-The Raspberry Pi Camera can work with a few code changes
+The Raspberry Pi Camera Module 3 is supported through Picamera2 while preserving the USB camera option.
 
 - ✅ **Raspberry Pi 5** (full support)
 - **Memory**: 2GB RAM minimum, 4GB recommended

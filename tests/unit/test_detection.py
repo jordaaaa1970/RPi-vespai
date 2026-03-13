@@ -21,6 +21,7 @@ from collections import deque
 project_root = os.path.join(os.path.dirname(__file__), '..', '..')
 sys.path.insert(0, project_root)
 
+from src.vespai.core.config import VespAIConfig
 from src.vespai.core.detection import CameraManager, ModelManager, DetectionProcessor, parse_resolution
 
 
@@ -35,6 +36,7 @@ class TestCameraManager(unittest.TestCase):
         """Test camera manager initialization"""
         self.assertEqual(self.camera_manager.width, 1920)
         self.assertEqual(self.camera_manager.height, 1080)
+        self.assertEqual(self.camera_manager.camera_source, 'auto')
         self.assertIsNone(self.camera_manager.cap)
     
     @patch('os.path.exists', return_value=True)
@@ -73,8 +75,53 @@ class TestCameraManager(unittest.TestCase):
         mock_cap.isOpened.return_value = False
         mock_video_capture.return_value = mock_cap
         
-        with self.assertRaises(RuntimeError):
-            self.camera_manager.initialize_camera()
+        with patch.object(self.camera_manager, '_initialize_picamera2', side_effect=RuntimeError('no picamera2')):
+            with self.assertRaises(RuntimeError):
+                self.camera_manager.initialize_camera()
+
+    @patch('src.vespai.core.detection.time.sleep')
+    def test_initialize_camera_auto_falls_back_to_picamera2(self, mock_sleep):
+        """Test auto mode falling back to Picamera2 when OpenCV camera open fails."""
+        with patch.object(self.camera_manager, '_initialize_opencv_camera', side_effect=RuntimeError('opencv failed')):
+            with patch.object(self.camera_manager, '_initialize_picamera2') as mock_picamera2:
+                mock_picamera2.side_effect = lambda: setattr(self.camera_manager, 'picam2', Mock())
+
+                result = self.camera_manager.initialize_camera()
+
+        self.assertIs(result, self.camera_manager.picam2)
+        mock_sleep.assert_called_once_with(0.5)
+
+    @patch('src.vespai.core.detection.time.sleep')
+    def test_initialize_camera_picamera2_mode(self, mock_sleep):
+        """Test explicit Picamera2 camera selection."""
+        camera_manager = CameraManager((1920, 1080), camera_source='picamera2')
+
+        with patch.object(camera_manager, '_initialize_opencv_camera') as mock_opencv:
+            with patch.object(camera_manager, '_initialize_picamera2') as mock_picamera2:
+                mock_picamera2.side_effect = lambda: setattr(camera_manager, 'picam2', Mock())
+
+                result = camera_manager.initialize_camera()
+
+        mock_opencv.assert_not_called()
+        self.assertIs(result, camera_manager.picam2)
+        mock_sleep.assert_called_once_with(0.5)
+
+    @patch('src.vespai.core.detection.cv2.VideoCapture')
+    @patch('src.vespai.core.detection.time.sleep')
+    def test_initialize_camera_usb_mode_skips_picamera2(self, mock_sleep, mock_video_capture):
+        """Test explicit USB camera selection keeps using OpenCV only."""
+        camera_manager = CameraManager((1920, 1080), camera_source='usb')
+        mock_cap = Mock()
+        mock_cap.isOpened.return_value = True
+        mock_cap.get.side_effect = [1920, 1080, 30]
+        mock_video_capture.return_value = mock_cap
+
+        with patch.object(camera_manager, '_initialize_picamera2') as mock_picamera2:
+            result = camera_manager.initialize_camera()
+
+        self.assertEqual(result, mock_cap)
+        mock_picamera2.assert_not_called()
+        mock_sleep.assert_called_once_with(0.5)
     
     def test_read_frame_no_camera(self):
         """Test reading frame without initialized camera"""
@@ -102,6 +149,16 @@ class TestCameraManager(unittest.TestCase):
         self.camera_manager.release()
         
         mock_cap.release.assert_called_once()
+
+    def test_release_picamera2(self):
+        """Test Picamera2 resource release."""
+        mock_picam2 = Mock()
+        self.camera_manager.picam2 = mock_picam2
+
+        self.camera_manager.release()
+
+        mock_picam2.stop.assert_called_once()
+        mock_picam2.close.assert_called_once()
 
 
 class TestModelManager(unittest.TestCase):
@@ -400,6 +457,24 @@ class TestUtilityFunctions(unittest.TestCase):
         self.assertEqual(parse_resolution("invalid"), (1920, 1080))
         self.assertEqual(parse_resolution("800"), (1920, 1080))
         self.assertEqual(parse_resolution(""), (1920, 1080))
+
+
+class TestConfig(unittest.TestCase):
+    """Test cases for configuration defaults and normalization."""
+
+    def test_camera_source_defaults_to_auto(self):
+        """Camera source should default to auto when not specified."""
+        config = VespAIConfig()
+        config.parse_args([])
+
+        self.assertEqual(config.get('camera_source'), 'auto')
+
+    def test_camera_source_picamera3_alias_normalizes(self):
+        """Camera Module 3 alias should map to the Picamera2 backend."""
+        config = VespAIConfig()
+        config.parse_args(['--camera-source', 'picamera3'])
+
+        self.assertEqual(config.get('camera_source'), 'picamera2')
 
 
 class TestDetectionIntegration(unittest.TestCase):

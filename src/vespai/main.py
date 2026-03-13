@@ -135,7 +135,10 @@ class VespAIApplication:
         """Initialize camera manager."""
         logger.info("Initializing camera...")
         resolution = self.config.get_camera_resolution()
-        self.camera_manager = CameraManager(resolution)
+        self.camera_manager = CameraManager(
+            resolution,
+            camera_source=self.config.get('camera_source', 'auto'),
+        )
         
         video_file = self.config.get('video_file')
         self.camera_manager.initialize_camera(video_file)
@@ -170,7 +173,10 @@ class VespAIApplication:
         resolution = self.config.get_camera_resolution()
 
         with self.source_lock:
-            new_manager = CameraManager(resolution)
+            new_manager = CameraManager(
+                resolution,
+                camera_source=self.config.get('camera_source', 'auto'),
+            )
             try:
                 new_manager.initialize_camera(target_dataset_path if mode_normalized == 'dataset' else None)
             except Exception as error:

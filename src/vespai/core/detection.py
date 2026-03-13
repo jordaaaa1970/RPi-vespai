@@ -43,15 +43,19 @@ class CameraManager:
     for cross-platform compatibility.
     """
     
-    def __init__(self, resolution: Tuple[int, int] = (1920, 1080)):
+    def __init__(self, resolution: Tuple[int, int] = (1920, 1080), camera_source: str = "auto"):
         """
         Initialize camera manager.
         
         Args:
             resolution: Tuple of (width, height) for camera resolution
+            camera_source: Camera backend selection: auto, usb, or picamera2
         """
         self.width, self.height = resolution
+        normalized_source = str(camera_source or "auto").strip().lower()
+        self.camera_source = 'picamera2' if normalized_source == 'picamera3' else normalized_source
         self.cap: Optional[cv2.VideoCapture] = None
+        self.picam2 = None
         self.device = None
         self.image_files: List[str] = []
         self.image_index = 0
@@ -66,7 +70,7 @@ class CameraManager:
         self.last_frame_source: str = ""
         self.randomizer = random.SystemRandom()
     
-    def initialize_camera(self, video_file: Optional[str] = None) -> cv2.VideoCapture:
+    def initialize_camera(self, video_file: Optional[str] = None) -> Any:
         """
         Initialize camera capture with multiple backend fallbacks.
         
@@ -74,7 +78,7 @@ class CameraManager:
             video_file: Path to video file, or None for live camera
             
         Returns:
-            cv2.VideoCapture: Initialized video capture object
+            Initialized capture object for the active backend
             
         Raises:
             RuntimeError: If no camera can be opened
@@ -91,6 +95,7 @@ class CameraManager:
         self.tfrecord_exhausted = False
         self.current_tfrecord_file = None
         self.last_frame_source = ""
+        self.picam2 = None
 
         if video_file:
             import os
@@ -144,59 +149,33 @@ class CameraManager:
                     raise RuntimeError(f"Failed to open video file: {video_file}")
         else:
             logger.info("Initializing camera with resolution %dx%d", self.width, self.height)
+            open_errors: List[str] = []
 
-            # Allow overriding camera device with env var (useful for libcamera v4l2 nodes)
-            import os
-            env_dev = os.environ.get('VESPAI_CAMERA_DEVICE')
+            if self.camera_source == 'picamera2':
+                initializers = [self._initialize_picamera2]
+            elif self.camera_source == 'usb':
+                initializers = [lambda: self._initialize_opencv_camera(force_usb_only=True)]
+            else:
+                initializers = [
+                    lambda: self._initialize_opencv_camera(force_usb_only=False),
+                    self._initialize_picamera2,
+                ]
 
-            # Prefer explicit override first, then detected USB webcam nodes,
-            # then libcamera compatibility nodes commonly used on Raspberry Pi.
-            preferred_nodes = [env_dev] if env_dev else []
-            preferred_nodes += self._discover_usb_video_nodes()
-            preferred_nodes += ["/dev/video0", "/dev/video8", "/dev/video23", "/dev/video24", "/dev/video25", "/dev/video26"]
-
-            # Preserve order while removing duplicates/empty entries
-            preferred_nodes = list(dict.fromkeys([node for node in preferred_nodes if node]))
-
-            # Build a list of (device, backend) candidates to try
-            candidates: List[Tuple[Any, Optional[int]]] = []
-            for dev in preferred_nodes:
-                if not dev:
-                    continue
-                # if dev looks like a path, use V4L2 backend
-                if isinstance(dev, str) and dev.startswith('/dev/video'):
-                    candidates.append((dev, cv2.CAP_V4L2))
-
-            # Fallback generic candidates for other platforms
-            candidates += [
-                (0, cv2.CAP_V4L2),      # Linux index 0
-                (0, cv2.CAP_DSHOW),     # Windows DirectShow
-                (0, cv2.CAP_AVFOUNDATION),  # macOS
-                (0, None),              # Default backend
-            ]
-
-            # Try each candidate until a capture device opens
-            for device, backend in candidates:
+            for initializer in initializers:
                 try:
-                    if backend is not None:
-                        self.cap = cv2.VideoCapture(device, backend)
-                    else:
-                        self.cap = cv2.VideoCapture(device)
+                    initializer()
+                    if self.cap:
+                        self._configure_camera()
+                    break
+                except RuntimeError as error:
+                    open_errors.append(str(error))
+                    logger.info("Camera backend failed: %s", error)
+                    self.cap = None
+                    self.picam2 = None
+                    self.device = None
 
-                    if self.cap.isOpened():
-                        # remember which device path/index we opened
-                        self.device = device
-                        logger.info("Camera opened with device %s, backend %s", device, backend)
-                        break
-                except Exception as e:
-                    logger.debug("Failed to open camera with device %s, backend %s: %s", device, backend, e)
-                    continue
-            
-            if not self.cap or not self.cap.isOpened():
-                raise RuntimeError("Cannot open camera with any backend")
-            
-            # Configure camera properties
-            self._configure_camera()
+            if not self.cap and not self.picam2:
+                raise RuntimeError("; ".join(open_errors) or "Cannot open camera with any backend")
         
         if self.image_sequence_mode:
             logger.info("Image dataset initialized successfully")
@@ -207,12 +186,77 @@ class CameraManager:
             return self.cap
 
         if not self.cap or not self.cap.isOpened():
-            raise RuntimeError("Failed to initialize video capture")
+            if not self.picam2:
+                raise RuntimeError("Failed to initialize video capture")
             
         logger.info("Camera initialized successfully")
         # Reduced stabilization time for better performance
         time.sleep(0.5)  # Quick stabilization
-        return self.cap
+        return self.cap if self.cap is not None else self.picam2
+
+    def _initialize_opencv_camera(self, force_usb_only: bool = False):
+        """Initialize a live camera via OpenCV and V4L2-compatible devices."""
+        import os
+
+        env_dev = os.environ.get('VESPAI_CAMERA_DEVICE')
+
+        preferred_nodes = [env_dev] if env_dev else []
+        preferred_nodes += self._discover_usb_video_nodes()
+        if not force_usb_only:
+            preferred_nodes += ["/dev/video0", "/dev/video8", "/dev/video23", "/dev/video24", "/dev/video25", "/dev/video26"]
+
+        preferred_nodes = list(dict.fromkeys([node for node in preferred_nodes if node]))
+
+        candidates: List[Tuple[Any, Optional[int]]] = []
+        for dev in preferred_nodes:
+            if isinstance(dev, str) and dev.startswith('/dev/video'):
+                candidates.append((dev, cv2.CAP_V4L2))
+
+        candidates += [
+            (0, cv2.CAP_V4L2),
+            (0, cv2.CAP_DSHOW),
+            (0, cv2.CAP_AVFOUNDATION),
+            (0, None),
+        ]
+
+        for device, backend in candidates:
+            try:
+                cap = cv2.VideoCapture(device, backend) if backend is not None else cv2.VideoCapture(device)
+                if cap.isOpened():
+                    self.cap = cap
+                    self.device = device
+                    logger.info("Camera opened with device %s, backend %s", device, backend)
+                    return
+                cap.release()
+            except Exception as error:
+                logger.debug("Failed to open camera with device %s, backend %s: %s", device, backend, error)
+
+        source_label = 'USB camera' if force_usb_only else 'OpenCV camera backend'
+        raise RuntimeError(f"{source_label} could not be opened")
+
+    def _initialize_picamera2(self):
+        """Initialize the Raspberry Pi CSI camera via Picamera2."""
+        try:
+            from picamera2 import Picamera2
+        except ImportError as error:
+            raise RuntimeError(
+                "Picamera2 is not available. Install python3-picamera2 on Raspberry Pi OS to use the CSI camera."
+            ) from error
+
+        try:
+            picam2 = Picamera2()
+            configuration = picam2.create_video_configuration(
+                main={"size": (self.width, self.height), "format": "RGB888"},
+                controls={"FrameRate": 30},
+            )
+            picam2.configure(configuration)
+            picam2.start()
+        except Exception as error:
+            raise RuntimeError(f"Picamera2 camera could not be opened: {error}") from error
+
+        self.picam2 = picam2
+        self.device = 'picamera2'
+        logger.info("Camera opened with Picamera2 backend")
 
     def _discover_usb_video_nodes(self) -> List[str]:
         """Discover likely USB webcam capture nodes from sysfs (e.g. /dev/video8)."""
@@ -313,6 +357,23 @@ class CameraManager:
                 self.tfrecord_exhausted = True
                 return False, None
             return True, frame
+
+        if self.picam2 is not None:
+            try:
+                frame = self.picam2.capture_array()
+            except Exception as error:
+                logger.warning("Failed to read frame from Picamera2: %s", error)
+                return False, None
+
+            if frame is None:
+                return False, None
+
+            if len(frame.shape) == 3 and frame.shape[2] == 3:
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+            self.last_frame_source = "camera:picamera2"
+            return True, frame
+
         if not self.cap:
             return False, None
             
@@ -436,8 +497,21 @@ class CameraManager:
     
     def release(self):
         """Release camera resources."""
+        if self.picam2 is not None:
+            try:
+                self.picam2.stop()
+            except Exception:
+                pass
+            try:
+                self.picam2.close()
+            except Exception:
+                pass
+            self.picam2 = None
+            logger.info("Picamera2 camera released")
+
         if self.cap:
             self.cap.release()
+            self.cap = None
             logger.info("Camera released")
 
 

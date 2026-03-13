@@ -90,8 +90,9 @@ def register_routes(app, stats, hourly_detections, app_instance):
             str: HTML content for the main VespAI dashboard
         """
         response = app.make_response(render_template('dashboard.html', timestamp=int(time.time())))
-        # Optimized caching for Raspberry Pi performance
-        response.headers['Cache-Control'] = 'public, max-age=300'  # 5 minute cache
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
         return response
 
     @app.route('/favicon.ico')

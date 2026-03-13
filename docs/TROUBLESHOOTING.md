@@ -59,11 +59,23 @@ sudo raspi-config
 # Reboot required
 
 # Test Pi camera
-raspistill -o test.jpg
+libcamera-hello
+
+# Install Picamera2 support on Raspberry Pi OS
+sudo apt update
+sudo apt install -y python3-picamera2
+
+# Force the CSI camera backend for Camera Module 3
+python vespai.py --web --camera-source picamera3
+
+# Force the USB camera backend
+python vespai.py --web --camera-source usb
 
 # Check camera connection
 vcgencmd get_camera
 ```
+
+If both a USB webcam and the Pi Camera are connected, `--camera-source auto` prefers the USB path first. Use `--camera-source picamera3` to force Camera Module 3.
 
 
 

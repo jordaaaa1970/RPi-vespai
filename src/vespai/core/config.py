@@ -35,6 +35,7 @@ class VespAIConfig:
         self.defaults = {
             # Camera settings
             'resolution': '1920x1080',
+            'camera_source': 'auto',
             'video_file': None,
             'dataset_path': '',
             
@@ -74,12 +75,20 @@ class VespAIConfig:
         # Current configuration (will be populated from env + args)
         self.config = {}
         self._load_from_environment()
+
+    def _normalize_camera_source(self, value: Any) -> str:
+        """Normalize camera source names while keeping user-facing aliases working."""
+        normalized = str(value or 'auto').strip().lower()
+        if normalized == 'picamera3':
+            return 'picamera2'
+        return normalized
     
     def _load_from_environment(self):
         """Load configuration from environment variables."""
         # Map environment variable names to config keys
         env_mapping = {
             'RESOLUTION': 'resolution',
+            'VESPAI_CAMERA_SOURCE': 'camera_source',
             'CONFIDENCE_THRESHOLD': 'confidence_threshold', 
             'MODEL_PATH': 'model_path',
             'VESPAI_CLASS_MAP': 'class_map',
@@ -125,6 +134,8 @@ class VespAIConfig:
                     logger.debug("Loaded %s from environment: %s", config_key, env_value)
                 except (ValueError, TypeError) as e:
                     logger.warning("Invalid environment value for %s: %s (%s)", env_key, env_value, e)
+
+            self.config['camera_source'] = self._normalize_camera_source(self.config.get('camera_source'))
     
     def parse_args(self, args=None) -> argparse.Namespace:
         """
@@ -145,6 +156,10 @@ class VespAIConfig:
         parser.add_argument('-r', '--resolution', 
                           default=self.config['resolution'],
                           help='Camera resolution (e.g., 1920x1080, 1080p, 720p)')
+        parser.add_argument('--camera-source',
+                  choices=('auto', 'usb', 'picamera2', 'picamera3'),
+                  default=self.config['camera_source'],
+                  help='Live camera backend selection (Camera Module 3 uses the Picamera2 backend)')
         parser.add_argument('-v', '--video',
                           default=self.config['video_file'],
                           help='Video file, image directory, or TFRecord file/directory to process instead of live camera')
@@ -224,6 +239,7 @@ class VespAIConfig:
         
         # Update configuration with parsed arguments
         self._update_from_args(parsed_args)
+        self.config['camera_source'] = self._normalize_camera_source(self.config.get('camera_source'))
         
         return parsed_args
     
@@ -232,6 +248,7 @@ class VespAIConfig:
         # Map argument attributes to config keys
         arg_mapping = {
             'resolution': 'resolution',
+            'camera_source': 'camera_source',
             'video': 'video_file',
             'conf': 'confidence_threshold',
             'model_path': 'model_path', 
@@ -355,6 +372,13 @@ class VespAIConfig:
                 raise ValueError("Resolution must have positive width and height")
         except Exception as e:
             raise ValueError(f"Invalid resolution format: {e}")
+
+        camera_source = self._normalize_camera_source(self.config['camera_source'])
+        if camera_source not in {'auto', 'usb', 'picamera2'}:
+            raise ValueError(
+                f"Camera source must be one of auto, usb, picamera2, got {self.config['camera_source']}"
+            )
+        self.config['camera_source'] = camera_source
         
         # Validate ports
         web_port = self.config['web_port']
@@ -380,6 +404,7 @@ class VespAIConfig:
         print("="*60)
         
         print(f"Resolution: {self.config['resolution']}")
+        print(f"Camera source: {self.config['camera_source']}")
         print(f"Confidence threshold: {self.config['confidence_threshold']}")
         print(f"Model path: {self.config['model_path']}")
         if self.config.get('class_map'):

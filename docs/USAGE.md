@@ -6,6 +6,12 @@
 # A) Webcam (live camera)
 python vespai.py --web --resolution 720p --motion --conf 0.7
 
+# A1) Force USB webcam
+python vespai.py --web --camera-source usb --resolution 720p --motion --conf 0.7
+
+# A2) Force Raspberry Pi Camera Module 3
+python vespai.py --web --camera-source picamera3 --resolution 720p --motion --conf 0.7
+
 # B) Dataset (TFRecord file) - aka DEMO mode
 python vespai.py --web \
   --model-path models/L4-yolov8_asianhornet_2026-03-06_19-45-38.onnx \
@@ -22,6 +28,28 @@ python vespai.py --web
 
 # Add motion detection for better performance on RPi
 python vespai.py --web --motion
+
+# Auto-select live camera by default: USB first, then the Pi camera backend if available
+python vespai.py --web --camera-source auto
+```
+
+### Raspberry Pi Camera Module 3
+
+On Raspberry Pi OS, install the native camera userspace once and validate that the camera works:
+
+```bash
+sudo apt update
+sudo apt install -y python3-picamera2
+libcamera-hello
+python vespai.py --web --camera-source picamera3
+```
+
+`picamera3` is a CLI alias for Camera Module 3 hardware. Internally VespAI still uses the Picamera2 library on Raspberry Pi OS.
+
+To prefer the Pi camera without changing the command line each time:
+
+```bash
+export VESPAI_CAMERA_SOURCE=picamera3
 ```
 
 ### Production Deployment

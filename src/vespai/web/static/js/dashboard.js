@@ -163,13 +163,23 @@ let isSwitchingSource = false;
 let sourceToggleInitialized = false;
 let currentInputMode = 'camera';
 let lastRenderedInputMode = null;
+let mainFeedInterval = null;
 
 function refreshMainVideoFeed() {
     const videoFeed = document.getElementById('video-feed');
     if (!videoFeed) {
         return;
     }
-    videoFeed.src = `/video_feed?ts=${Date.now()}`;
+    videoFeed.src = `/api/current_frame?ts=${Date.now()}`;
+}
+
+function startMainVideoFeedPolling() {
+    if (mainFeedInterval) {
+        clearInterval(mainFeedInterval);
+    }
+
+    refreshMainVideoFeed();
+    mainFeedInterval = setInterval(refreshMainVideoFeed, 350);
 }
 
 function updateSourceToggleBadge(mode) {
@@ -248,6 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize language
     translatePage();
     initSourceToggle();
+    startMainVideoFeedPolling();
     
     // Add language switch event listeners
     document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -716,5 +727,8 @@ updateStats();
 window.addEventListener('beforeunload', function() {
     if (statsInterval) {
         clearInterval(statsInterval);
+    }
+    if (mainFeedInterval) {
+        clearInterval(mainFeedInterval);
     }
 });

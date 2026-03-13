@@ -13,6 +13,9 @@ It may well work in other scenarios, Win/Mac, but I have to tried that.
 ``` bash
 sudo apt update && sudo apt install python3-opencv python3-pip git
 
+# Raspberry Pi Camera Module support
+sudo apt install python3-picamera2
+
 # Install Git LFS to download model files properly
 sudo apt install git-lfs
 git lfs install
@@ -55,6 +58,9 @@ source .venv/bin/activate
 # Start with web dashboard (optimized for Pi)
 python vespai.py --web --resolution 720p --motion
 
+# Start with Raspberry Pi Camera Module 3
+PYTHONPATH=/usr/lib/python3/dist-packages python vespai.py --web --camera-source picamera3 --resolution 720p --motion
+
 # With motion detection and image saving
 python vespai.py --web --resolution 720p --motion --save --conf 0.7
 ```
@@ -68,7 +74,7 @@ python vespai.py --web --resolution 720p --motion --conf 0.7
 
 # B) Dataset (TFRecord file) - aka DEMO Mode
 python vespai.py --web \
-  --model-path models/L4-yolov8_asianhornet_2026-03-06_19-45-38.onnx \
+  --model-path models/L4-yolov26_asianhornet_2026-03-06_19-45-38.onnx \
   --class-map "1:crabro,2:velutina" \
   --video "datasets/Detection Asian-hornet.v1i.tfrecord/test/asianhornet.tfrecord" \
   --resolution 720p --conf 0.7 --print
@@ -133,8 +139,13 @@ After=network.target
 Type=simple
 User=sysadmin
 Group=sysadmin
-WorkingDirectory=/home/sysadmin/vespai
-ExecStart=/home/sysadmin/vespai/start_vespai_web.sh
+PermissionsStartOnly=true
+WorkingDirectory=/home/sysadmin/RPi-vespai
+ExecStartPre=/usr/bin/mkdir -p /home/sysadmin/RPi-vespai/logs
+ExecStartPre=/usr/bin/touch /home/sysadmin/RPi-vespai/logs/vespai.log
+ExecStartPre=/usr/bin/chown sysadmin:sysadmin /home/sysadmin/RPi-vespai/logs/vespai.log
+Environment=PYTHONPATH=/usr/lib/python3/dist-packages
+ExecStart=/home/sysadmin/RPi-vespai/start_vespai_web.sh
 Restart=on-failure
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1

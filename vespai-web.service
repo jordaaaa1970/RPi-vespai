@@ -7,11 +7,12 @@ Type=simple
 PermissionsStartOnly=true
 User=sysadmin
 Group=sysadmin
-WorkingDirectory=/home/sysadmin/vespai
-ExecStartPre=/usr/bin/mkdir -p /home/sysadmin/vespai/logs
-ExecStartPre=/usr/bin/touch /home/sysadmin/vespai/logs/vespai.log
-ExecStartPre=/usr/bin/chown sysadmin:sysadmin /home/sysadmin/vespai/logs/vespai.log
-ExecStart=/home/sysadmin/vespai/start_vespai_web.sh
+WorkingDirectory=/home/sysadmin/RPi-vespai
+ExecStartPre=/usr/bin/mkdir -p /home/sysadmin/RPi-vespai/logs
+ExecStartPre=/usr/bin/touch /home/sysadmin/RPi-vespai/logs/vespai.log
+ExecStartPre=/usr/bin/chown sysadmin:sysadmin /home/sysadmin/RPi-vespai/logs/vespai.log
+Environment=PYTHONPATH=/usr/lib/python3/dist-packages
+ExecStart=/home/sysadmin/RPi-vespai/start_vespai_web.sh
 Restart=on-failure
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1
