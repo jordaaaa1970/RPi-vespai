@@ -23,7 +23,7 @@ python scripts/setup.py
 
 
 ## Model loading
-**YOLOv8 model loading errors:**
+**YOLO model loading errors:**
 - Ensure model path is correct
 - Check PyTorch installation
 - Verify model compatibility
