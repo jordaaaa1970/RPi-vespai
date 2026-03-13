@@ -3,7 +3,7 @@
 🐝 **Vesp detection system** with real-time computer vision, web dashboard, and SMS alerts and Push Notification (To be tested).
 
 The system is designed to run on a Raspberry Pi 5 with either a USB camera or a Raspberry Pi Camera Module.
-RPi-VespAI uses a YOLOv8 deep learning trained model to identify and differentiate between Asian hornets (Vespa velutina) and European hornets (Vespa crabro) in real-time. 
+RPi-VespAI uses a YOLO26 deep learning trained model to identify and differentiate between Asian hornets (Vespa velutina) and European hornets (Vespa crabro) in real-time. 
 
 **Based on the research:** *VespAI: a deep learning-based system for the detection of invasive hornets* published in Communications Biology (2024). DOI: [10.1038/s42003-024-05979-z](https://doi.org/10.1038/s42003-024-05979-z)
 
@@ -12,7 +12,7 @@ RPi-VespAI uses a YOLOv8 deep learning trained model to identify and differentia
 
 ## ✨ Features
 
-- 🔍 **Real-time Detection**: YOLOv8-based computer vision with custom hornet model
+- 🔍 **Real-time Detection**: YOLO26-based computer vision with custom hornet model
 - 📊 **Web Dashboard**: Live video feed with statistics and detection analytics
 - 🌍 **Bilingual Support**: Complete English/German/French interface with flag-based switching
 - 📱 **SMS Alerts**: Automated notifications via Lox24 API with intelligent rate limiting - To be Tested
