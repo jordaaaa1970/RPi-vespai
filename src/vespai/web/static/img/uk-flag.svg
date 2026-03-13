@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 36" role="img" aria-labelledby="title desc">
+  <title id="title">United Kingdom flag</title>
+  <desc id="desc">Union flag with red, white, and blue crosses and diagonals</desc>
+  <rect width="60" height="36" fill="#012169"/>
+  <path d="M0 0l24.5 14.5h5.2L5.2 0H0zm60 0L35.5 14.5h5.2L60 3.1V0zM0 36l24.5-14.5h5.2L5.2 36H0zm60 0L35.5 21.5h5.2L60 32.9V36z" fill="#fff"/>
+  <path d="M0 0l20.2 12h3.5L3.5 0H0zm60 0L39.8 12h3.5L60 2.3V0zM0 36l20.2-12h3.5L3.5 36H0zm60 0L39.8 24h3.5L60 33.7V36z" fill="#C8102E"/>
+  <rect x="24" width="12" height="36" fill="#fff"/>
+  <rect y="12" width="60" height="12" fill="#fff"/>
+  <rect x="26" width="8" height="36" fill="#C8102E"/>
+  <rect y="14" width="60" height="8" fill="#C8102E"/>
+</svg>

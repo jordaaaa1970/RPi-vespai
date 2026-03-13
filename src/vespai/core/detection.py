@@ -154,12 +154,27 @@ class CameraManager:
             if self.camera_source == 'picamera2':
                 initializers = [self._initialize_picamera2]
             elif self.camera_source == 'usb':
-                initializers = [lambda: self._initialize_opencv_camera(force_usb_only=True)]
-            else:
                 initializers = [
-                    lambda: self._initialize_opencv_camera(force_usb_only=False),
-                    self._initialize_picamera2,
+                    lambda: self._initialize_opencv_camera(force_usb_only=True, include_legacy_nodes=False),
+                    lambda: self._initialize_opencv_camera(force_usb_only=True, include_legacy_nodes=True),
                 ]
+            else:
+                preferred_usb_nodes = self._get_preferred_video_nodes(include_legacy_nodes=False)
+                initializers = []
+                if preferred_usb_nodes:
+                    initializers.append(
+                        lambda: self._initialize_opencv_camera(
+                            force_usb_only=False,
+                            include_legacy_nodes=False,
+                        )
+                    )
+                initializers.extend([
+                    self._initialize_picamera2,
+                    lambda: self._initialize_opencv_camera(
+                        force_usb_only=False,
+                        include_legacy_nodes=True,
+                    ),
+                ])
 
             for initializer in initializers:
                 try:
@@ -194,30 +209,38 @@ class CameraManager:
         time.sleep(0.5)  # Quick stabilization
         return self.cap if self.cap is not None else self.picam2
 
-    def _initialize_opencv_camera(self, force_usb_only: bool = False):
-        """Initialize a live camera via OpenCV and V4L2-compatible devices."""
+    def _get_preferred_video_nodes(self, include_legacy_nodes: bool, force_usb_only: bool = False) -> List[str]:
+        """Return ordered preferred V4L2 device nodes for OpenCV-based capture."""
         import os
 
         env_dev = os.environ.get('VESPAI_CAMERA_DEVICE')
 
         preferred_nodes = [env_dev] if env_dev else []
         preferred_nodes += self._discover_usb_video_nodes()
-        if not force_usb_only:
+        if include_legacy_nodes and not force_usb_only:
             preferred_nodes += ["/dev/video0", "/dev/video8", "/dev/video23", "/dev/video24", "/dev/video25", "/dev/video26"]
 
-        preferred_nodes = list(dict.fromkeys([node for node in preferred_nodes if node]))
+        return list(dict.fromkeys([node for node in preferred_nodes if node]))
+
+    def _initialize_opencv_camera(self, force_usb_only: bool = False, include_legacy_nodes: bool = True):
+        """Initialize a live camera via OpenCV and V4L2-compatible devices."""
+        preferred_nodes = self._get_preferred_video_nodes(
+            include_legacy_nodes=include_legacy_nodes,
+            force_usb_only=force_usb_only,
+        )
 
         candidates: List[Tuple[Any, Optional[int]]] = []
         for dev in preferred_nodes:
             if isinstance(dev, str) and dev.startswith('/dev/video'):
                 candidates.append((dev, cv2.CAP_V4L2))
 
-        candidates += [
-            (0, cv2.CAP_V4L2),
-            (0, cv2.CAP_DSHOW),
-            (0, cv2.CAP_AVFOUNDATION),
-            (0, None),
-        ]
+        if include_legacy_nodes:
+            candidates += [
+                (0, cv2.CAP_V4L2),
+                (0, cv2.CAP_DSHOW),
+                (0, cv2.CAP_AVFOUNDATION),
+                (0, None),
+            ]
 
         for device, backend in candidates:
             try:

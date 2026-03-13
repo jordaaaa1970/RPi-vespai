@@ -550,7 +550,11 @@ function updateStats() {
             const sourceElement = document.getElementById('frame-source');
             if (sourceElement) {
                 const sourcePrefix = translations[currentLang]['source-prefix'] || 'Source';
-                const sourceValue = data.current_frame_source || translations[currentLang]['waiting'] || 'waiting...';
+                const rawSourceValue = data.current_frame_source || '';
+                const isDatasetSource = rawSourceValue.startsWith('tfrecord:') || rawSourceValue.startsWith('image:');
+                const sourceValue = (data.input_mode === 'camera' && isDatasetSource)
+                    ? (translations[currentLang]['waiting'] || 'waiting...')
+                    : (rawSourceValue || translations[currentLang]['waiting'] || 'waiting...');
                 sourceElement.textContent = `${sourcePrefix}: ${sourceValue}`;
             }
 

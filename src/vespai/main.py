@@ -188,11 +188,13 @@ class VespAIApplication:
             if mode_normalized == 'camera':
                 self.current_input_mode = 'camera'
                 self.config.set('video_file', None)
+                self.detection_processor.stats['current_frame_source'] = ''
             else:
                 self.current_input_mode = 'dataset'
                 self.current_dataset_path = target_dataset_path
                 self.config.set('video_file', target_dataset_path)
                 self.config.set('dataset_path', target_dataset_path)
+                self.detection_processor.stats['current_frame_source'] = ''
 
             with self.web_lock:
                 self.web_frame = None

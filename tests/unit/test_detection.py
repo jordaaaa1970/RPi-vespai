@@ -122,6 +122,44 @@ class TestCameraManager(unittest.TestCase):
         self.assertEqual(result, mock_cap)
         mock_picamera2.assert_not_called()
         mock_sleep.assert_called_once_with(0.5)
+
+    @patch('src.vespai.core.detection.time.sleep')
+    def test_initialize_camera_auto_prefers_picamera2_before_generic_fallback(self, mock_sleep):
+        """Auto mode should try Picamera2 before legacy generic V4L2 probing when no USB camera is found."""
+        call_order = []
+
+        with patch.object(self.camera_manager, '_get_preferred_video_nodes', return_value=[]):
+            with patch.object(self.camera_manager, '_initialize_picamera2') as mock_picamera2:
+                with patch.object(self.camera_manager, '_initialize_opencv_camera') as mock_opencv:
+                    def opencv_side_effect(*args, **kwargs):
+                        call_order.append(('opencv', kwargs.get('include_legacy_nodes')))
+                        raise RuntimeError('opencv failed')
+
+                    def picamera_side_effect():
+                        call_order.append(('picamera2', None))
+                        self.camera_manager.picam2 = Mock()
+
+                    mock_opencv.side_effect = opencv_side_effect
+                    mock_picamera2.side_effect = picamera_side_effect
+
+                    result = self.camera_manager.initialize_camera()
+
+        self.assertIs(result, self.camera_manager.picam2)
+        self.assertEqual(call_order, [('picamera2', None)])
+        mock_sleep.assert_called_once_with(0.5)
+
+    def test_get_preferred_video_nodes_omits_legacy_nodes_when_requested(self):
+        """Preferred node discovery should exclude Pi legacy video nodes until explicit fallback."""
+        with patch.dict('os.environ', {'VESPAI_CAMERA_DEVICE': '/dev/video99'}, clear=False):
+            with patch.object(self.camera_manager, '_discover_usb_video_nodes', return_value=['/dev/video11']):
+                preferred = self.camera_manager._get_preferred_video_nodes(include_legacy_nodes=False)
+                fallback = self.camera_manager._get_preferred_video_nodes(include_legacy_nodes=True)
+
+        self.assertEqual(preferred, ['/dev/video99', '/dev/video11'])
+        self.assertEqual(
+            fallback,
+            ['/dev/video99', '/dev/video11', '/dev/video0', '/dev/video8', '/dev/video23', '/dev/video24', '/dev/video25', '/dev/video26'],
+        )
     
     def test_read_frame_no_camera(self):
         """Test reading frame without initialized camera"""
