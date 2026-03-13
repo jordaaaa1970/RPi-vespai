@@ -655,6 +655,8 @@ class ModelManager:
         
         # Try alternative paths
         alternative_paths = [
+            str(repo_root / "models" / "L4-YOLOV26-asianhornet_2026-03-13_08-57-52.onnx"),
+            str(repo_root / "models" / "L4-yolov8_asianhornet_2026-03-06_19-45-38.onnx"),
             str(repo_root / "models" / "L4-yolov8_asianhornet_2026-02-25_08-31-37.keras"),
             "/opt/vespai/models/yolov5s-all-data.pt",
             str(repo_root / "models" / "yolov5s-all-data.pt"),
@@ -683,7 +685,7 @@ class ModelManager:
         from ultralytics import YOLO
 
         self.model_family = "yolov8"
-        return YOLO(self.model_path)
+        return YOLO(self.model_path, task='detect')
 
     def _load_nhwc_onnx_runtime(self):
         """Load NHWC ONNX model with direct ONNXRuntime backend."""
@@ -703,31 +705,41 @@ class ModelManager:
         self.class_names = self._load_onnx_class_names()
         return self.onnx_session
 
-    def _load_onnx_class_names(self) -> Dict[int, str]:
-        """Load class names from sidecar metadata or return generic labels."""
+    def _load_sidecar_class_names(self) -> Dict[int, str]:
+        """Load class names from a sidecar metadata JSON next to the model."""
         model_path = Path(self.model_path)
         metadata_path = model_path.with_name(f"{model_path.stem}_metadata.json")
+        if not metadata_path.exists():
+            return {}
 
-        if metadata_path.exists():
-            try:
-                with open(metadata_path, 'r', encoding='utf-8') as handle:
-                    metadata = json.load(handle)
+        try:
+            with open(metadata_path, 'r', encoding='utf-8') as handle:
+                metadata = json.load(handle)
+        except Exception as error:
+            logger.warning("Failed reading metadata sidecar %s: %s", metadata_path, error)
+            return {}
 
-                for key in ('class_names', 'names', 'labels', 'classes'):
-                    names = metadata.get(key)
-                    if isinstance(names, list):
-                        return {index: str(name) for index, name in enumerate(names)}
-                    if isinstance(names, dict):
-                        normalized: Dict[int, str] = {}
-                        for item_key, value in names.items():
-                            try:
-                                normalized[int(item_key)] = str(value)
-                            except Exception:
-                                continue
-                        if normalized:
-                            return normalized
-            except Exception as error:
-                logger.warning("Failed reading ONNX metadata sidecar: %s", error)
+        for key in ('class_names', 'names', 'labels', 'classes'):
+            names = metadata.get(key)
+            if isinstance(names, list):
+                return {index: str(name) for index, name in enumerate(names)}
+            if isinstance(names, dict):
+                normalized: Dict[int, str] = {}
+                for item_key, value in names.items():
+                    try:
+                        normalized[int(item_key)] = str(value)
+                    except Exception:
+                        continue
+                if normalized:
+                    return normalized
+
+        return {}
+
+    def _load_onnx_class_names(self) -> Dict[int, str]:
+        """Load class names from sidecar metadata or return generic labels."""
+        sidecar_names = self._load_sidecar_class_names()
+        if sidecar_names:
+            return sidecar_names
 
         # Derive class count from ONNX output shape if available.
         if self.onnx_session is not None:
@@ -811,9 +823,14 @@ class ModelManager:
 
         if self.model_family == "yolov5" and hasattr(self.model, 'conf'):
             self.model.conf = self.confidence
+
+        sidecar_names = self._load_sidecar_class_names()
+        if sidecar_names:
+            self.class_names = sidecar_names
+            logger.info("Using class names from metadata sidecar: %s", self.class_names)
         
         # Extract class names
-        if hasattr(self.model, 'names'):
+        elif hasattr(self.model, 'names'):
             self.class_names = self.model.names
             logger.info("Model classes: %s", self.class_names)
 
@@ -1265,6 +1282,7 @@ class DetectionProcessor:
 
         override_map = self._parse_class_map_override(class_map_override)
         override_map = self._normalize_override_indices(override_map)
+        override_map = self._filter_conflicting_override_labels(override_map)
         if override_map:
             self.class_species_map.update(override_map)
             self.class_mapping_overridden = True
@@ -1477,6 +1495,13 @@ class DetectionProcessor:
 
     def _map_label_to_species(self, label: str) -> Optional[str]:
         """Map a model class label to canonical species key used by VespAI stats/UI."""
+        category = self._map_label_to_display_category(label)
+        if category in {'velutina', 'crabro'}:
+            return category
+        return None
+
+    def _map_label_to_display_category(self, label: str) -> Optional[str]:
+        """Map a model class label to the closest dashboard category."""
         text = str(label).strip().lower().replace('-', ' ').replace('_', ' ')
 
         velutina_markers = (
@@ -1490,11 +1515,25 @@ class DetectionProcessor:
             'european hornet',
             'vespa crabro',
         )
+        bee_markers = (
+            'bee',
+            'honey bee',
+            'apis',
+        )
+        wasp_markers = (
+            'wasp',
+            'yellowjacket',
+            'yellow jacket',
+        )
 
         if any(marker in text for marker in velutina_markers):
             return 'velutina'
         if any(marker in text for marker in crabro_markers):
             return 'crabro'
+        if any(marker in text for marker in bee_markers):
+            return 'bee'
+        if any(marker in text for marker in wasp_markers):
+            return 'wasp'
 
         return None
 
@@ -1577,6 +1616,27 @@ class DetectionProcessor:
 
         return override_map
 
+    def _filter_conflicting_override_labels(self, override_map: Dict[int, str]) -> Dict[int, str]:
+        """Drop override entries that contradict explicit model labels."""
+        if not override_map or not self.class_names or self._has_generic_class_placeholders():
+            return override_map
+
+        filtered: Dict[int, str] = {}
+        for class_id, override_species in override_map.items():
+            model_label = self.class_names.get(class_id)
+            inferred_category = self._map_label_to_display_category(model_label) if model_label is not None else None
+            if inferred_category and inferred_category != override_species:
+                logger.warning(
+                    "Ignoring conflicting class map override for class %d: override=%s, model label='%s'",
+                    class_id,
+                    override_species,
+                    model_label,
+                )
+                continue
+            filtered[class_id] = override_species
+
+        return filtered
+
     def _has_generic_class_placeholders(self) -> bool:
         """Return True if class names look like class0/class1 placeholders."""
         if not self.class_names:
@@ -1610,6 +1670,11 @@ class DetectionProcessor:
         hornet_species = self._resolve_species_for_class(class_id)
         if hornet_species:
             return hornet_species
+
+        if class_id in self.class_names:
+            explicit_category = self._map_label_to_display_category(self.class_names[class_id])
+            if explicit_category in {'bee', 'wasp'}:
+                return explicit_category
 
         if self._has_generic_class_placeholders():
             if class_id == 0:

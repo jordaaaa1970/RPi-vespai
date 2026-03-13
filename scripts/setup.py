@@ -57,6 +57,7 @@ class VespAISetup:
         self.models_dir = self.project_root / "models"
         self.requirements_file = self.project_root / "requirements.txt"
         self.preferred_model_candidates = [
+            self.models_dir / "L4-YOLOV26-asianhornet_2026-03-13_08-57-52.onnx",
             self.models_dir / "L4-yolov8_asianhornet_2026-03-06_19-45-38.onnx",
         ]
         
@@ -211,9 +212,12 @@ class VespAISetup:
 # DOMAIN_NAME=your-domain.com
 
 # Model Configuration
-MODEL_PATH=models/L4-yolov8_asianhornet_2026-03-06_19-45-38.onnx
+MODEL_PATH=models/L4-YOLOV26-asianhornet_2026-03-13_08-57-52.onnx
 CONFIDENCE_THRESHOLD=0.8
-VESPAI_CLASS_MAP=1:crabro,2:velutina
+# Leave blank when the model already embeds reliable class labels.
+# Example for the older dataset ONNX export:
+# VESPAI_CLASS_MAP=1:crabro,2:velutina
+VESPAI_CLASS_MAP=
 VESPAI_DATASET_PATH=/absolute/path/to/dataset.tfrecord
 
 # Camera Configuration

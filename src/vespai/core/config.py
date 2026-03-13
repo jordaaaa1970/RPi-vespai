@@ -40,7 +40,7 @@ class VespAIConfig:
             
             # Detection settings  
             'confidence_threshold': 0.8,
-            'model_path': 'models/yolov5s-all-data.pt',
+            'model_path': 'models/L4-YOLOV26-asianhornet_2026-03-13_08-57-52.onnx',
             'class_map': '',
             'save_detections': False,
             'save_directory': 'data/detections',
@@ -156,7 +156,7 @@ class VespAIConfig:
                           help='Detection confidence threshold')
         parser.add_argument('--model-path',
                           default=self.config['model_path'],
-                          help='Path to YOLOv5 model weights')
+                          help='Path to model weights or export artifact')
         parser.add_argument('--class-map',
                   default=self.config['class_map'],
                   help='Class-to-species mapping, e.g. "0:crabro,1:velutina" or JSON string')

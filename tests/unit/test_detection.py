@@ -8,6 +8,8 @@ Comprehensive tests for camera management, model loading, and detection processi
 import unittest
 import sys
 import os
+import json
+import tempfile
 from unittest.mock import Mock, patch, MagicMock
 import numpy as np
 import cv2
@@ -139,7 +141,7 @@ class TestModelManager(unittest.TestCase):
         # Should update to the first current fallback path
         self.assertTrue(
             self.model_manager.model_path.endswith(
-                "models/L4-yolov8_asianhornet_2026-02-25_08-31-37.keras"
+                "models/L4-YOLOV26-asianhornet_2026-03-13_08-57-52.onnx"
             )
         )
     
@@ -197,6 +199,22 @@ class TestModelManager(unittest.TestCase):
         
         self.assertEqual(result, mock_predictions)
         mock_model.assert_called_once()
+
+    def test_load_sidecar_class_names(self):
+        """Test loading class names from a model sidecar metadata file."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model_path = os.path.join(tmpdir, 'test-model.onnx')
+            metadata_path = os.path.join(tmpdir, 'test-model_metadata.json')
+            with open(model_path, 'wb') as handle:
+                handle.write(b'')
+            with open(metadata_path, 'w', encoding='utf-8') as handle:
+                json.dump({'names': {0: 'Bee', 1: 'Vespa-Crabro', 2: 'Vespa-Velutina', 3: 'Wasp'}}, handle)
+
+            manager = ModelManager(model_path, confidence=0.8)
+            self.assertEqual(
+                manager._load_sidecar_class_names(),
+                {0: 'Bee', 1: 'Vespa-Crabro', 2: 'Vespa-Velutina', 3: 'Wasp'},
+            )
 
 
 class TestDetectionProcessor(unittest.TestCase):
@@ -336,6 +354,30 @@ class TestDetectionProcessor(unittest.TestCase):
         
         # Should not exceed 20 stored frames
         self.assertLessEqual(len(self.processor.stats["detection_frames"]), 20)
+
+    def test_conflicting_class_map_override_is_ignored_for_explicit_labels(self):
+        """Explicit model labels should win over contradictory overrides."""
+        import torch
+
+        self.processor.set_class_names(
+            {0: 'Bee', 1: 'Bee', 2: 'Vespa-Crabro', 3: 'Vespa-Crabro'},
+            '1:crabro,2:velutina',
+        )
+
+        mock_results = Mock()
+        mock_results.pred = [torch.tensor([[100, 100, 200, 200, 0.91, 1]])]
+        frame = np.zeros((480, 640, 3), dtype=np.uint8)
+
+        velutina, crabro, _ = self.processor.process_detections(
+            mock_results,
+            frame,
+            1,
+            confidence_threshold=0.8,
+        )
+
+        self.assertEqual(velutina, 0)
+        self.assertEqual(crabro, 0)
+        self.assertEqual(self.processor.stats['total_bee'], 1)
 
 
 class TestUtilityFunctions(unittest.TestCase):

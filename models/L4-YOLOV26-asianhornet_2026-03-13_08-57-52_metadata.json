@@ -1,0 +1,17 @@
+{
+  "model_name": "L4-YOLOV26-asianhornet",
+  "model_type": "YOLO26",
+  "format": "ONNX",
+  "timestamp": "2026-03-13_08-57-52",
+  "onnx_file": "L4-YOLOV26-asianhornet_2026-03-13_08-57-52.onnx",
+  "class_names": {
+    "0": "Bee",
+    "1": "Vespa-Crabro",
+    "2": "Vespa-Velutina",
+    "3": "Wasp"
+  },
+  "notes": [
+    "Corrected sidecar metadata for the YOLO26 ONNX export.",
+    "Verified against TFRecord labels: model predicts zero-based class ids matching dataset labels 1..4 shifted by -1."
+  ]
+}
