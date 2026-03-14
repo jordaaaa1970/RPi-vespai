@@ -7,4 +7,4 @@ cd "$SCRIPT_DIR"
 
 export PYTHONPATH="/usr/lib/python3/dist-packages${PYTHONPATH:+:$PYTHONPATH}"
 
-exec "$SCRIPT_DIR/.venv/bin/python" vespai.py --web
+exec "$SCRIPT_DIR/.venv/bin/python" vespai.py --web "$@"
