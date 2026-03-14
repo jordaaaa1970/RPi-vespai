@@ -14,7 +14,7 @@ python vespai.py --web --camera-source picamera3 --resolution 720p --motion --co
 
 # B) Dataset (TFRecord file) - aka DEMO mode
 python vespai.py --web \
-  --model-path models/L4-yolov8_asianhornet_2026-03-06_19-45-38.onnx \
+  --model-path models/L4-YOLOV26-asianhornet_2026-03-13_08-57-52.onnx \
   --class-map "1:crabro,2:velutina" \
   --video "datasets/Detection Asian-hornet.v1i.tfrecord/test/asianhornet.tfrecord" \
   --resolution 720p --conf 0.7 --print
@@ -22,7 +22,6 @@ python vespai.py --web \
 
 ### Basic Monitoring
 ```bash
-
 # Start with web interface
 python vespai.py --web
 
@@ -32,6 +31,8 @@ python vespai.py --web --motion
 # Auto-select live camera by default: USB first, then the Pi camera backend if available
 python vespai.py --web --camera-source auto
 ```
+
+The default `vespai-web.service` boot startup now launches the dashboard with `--web --motion`.
 
 ### Raspberry Pi Camera Module 3
 
@@ -56,10 +57,13 @@ export VESPAI_CAMERA_SOURCE=picamera3
 ```bash
 # Full featured production setup - saving detections
 python vespai.py --web --resolution 720p --motion --save --conf 0.7
+
+# Same mode used by the default systemd boot service
+./start_vespai_web.sh --motion
 ```
 
 ### Experimental Run
-```
+```bash
 # Custom ONNX/class ordering
 python vespai.py --web --model-path models/custom.onnx --class-map "1:crabro,2:velutina"
 
@@ -97,9 +101,38 @@ Once started, access the dashboard:
 
 ### API Endpoints
 - `GET /` - Main dashboard
-- `GET /video_feed` - Live video stream
+- `GET /api/current_frame` - Current live frame as a JPEG image
 - `GET /api/stats` - Real-time statistics JSON
+- `POST /api/input_source` - Switch between live camera and dataset mode
 - `GET /frame/<frame_id>` - Specific detection frame
+- `GET /video_feed` - Legacy MJPEG live stream endpoint
+
+### Command Line Options
+
+```text
+python vespai.py [OPTIONS]
+
+Options:
+  --web                    Enable web dashboard
+  --camera-source SOURCE   Live camera backend: auto, usb, picamera2, picamera3
+  -c, --conf FLOAT         Detection confidence threshold
+  --model-path PATH        Path to model weights or export artifact
+  --class-map TEXT         Class mapping (e.g. "0:crabro,1:velutina")
+  -s, --save               Save detection images
+  -sd, --save-dir PATH     Directory for saved images
+  -v, --video PATH         Use video file, image directory, or TFRecord instead of live camera
+  -r, --resolution WxH     Camera resolution
+  -m, --motion             Enable motion detection
+  -a, --min-motion-area N  Minimum motion area threshold
+  -d, --dilation N         Dilation iterations for motion detection
+  --dataset-delay FLOAT    Minimum frame delay for finite dataset inputs
+  --web-host HOST          Web server host
+  --web-port PORT          Web server port
+  -b, --brake FLOAT        Frame processing delay
+  -p, --print              Print detection details to console
+  --sms                    Enable SMS alerts
+  --no-sms                 Disable SMS alerts
+```
 
 
 
