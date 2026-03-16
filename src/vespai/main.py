@@ -115,9 +115,16 @@ class VespAIApplication:
             args: Command line arguments (None for sys.argv)
         """
         logger.info("Initializing VespAI application...")
+
+        # DEBUG: Print all environment variables to verify .env loading
+        logger.info("ENVIRONMENT VARIABLES AT STARTUP:")
+        for k, v in sorted(os.environ.items()):
+            logger.info("%s=%s", k, v)
         
         # Load configuration
         self.config = create_config_from_args(args)
+        # DEBUG: Print parsed config values for save_detections and enable_motion_detection
+        logger.info("PARSED CONFIG: save_detections=%r, enable_motion_detection=%r", self.config.get('save_detections'), self.config.get('enable_motion_detection'))
         self.config.print_summary()
         
         # Initialize components

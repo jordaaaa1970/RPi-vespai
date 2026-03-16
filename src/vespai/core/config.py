@@ -41,15 +41,15 @@ class VespAIConfig:
             
             # Detection settings  
             'confidence_threshold': 0.8,
-            'model_path': 'models/L4-YOLOV26-asianhornet_2026-03-13_08-57-52.onnx',
+            'model_path': 'models/L4-YOLOV26-asianhornet_2026-03-13_08-57-52_ncnn_model',
             'class_map': '',
-            'save_detections': False,
+            'save_detections': True,
             'save_directory': 'data/detections',
             'detection_retention_days': 21,
             'print_detections': False,
             
             # Motion detection
-            'enable_motion_detection': False,
+            'enable_motion_detection': True,
             'min_motion_area': 100,
             'dilation_iterations': 1,
             
@@ -58,7 +58,7 @@ class VespAIConfig:
             'dataset_frame_delay': 0.6,
             
             # Web interface
-            'enable_web': False,
+            'enable_web': True,
             'web_host': '0.0.0.0',
             'web_port': 5000,
             

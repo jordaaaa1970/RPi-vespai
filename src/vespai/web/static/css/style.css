@@ -1,3 +1,15 @@
+/* All status indicators: Web, Motion, Save */
+.live-indicator, .motion-indicator, .save-indicator {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success), 0 0 16px var(--success);
+    vertical-align: middle;
+    transition: background 0.2s, box-shadow 0.2s;
+}
 /* VespAI Dashboard Styles 
  * Complete CSS for the VespAI hornet detection system dashboard
  * Features: Custom cursor, responsive design, bilingual support, honeycomb theme
@@ -274,18 +286,7 @@ body::before {
     text-align: left;
 }
 
-.live-indicator {
-    width: 10px;
-    height: 10px;
-    background: var(--success);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-}
 
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-}
 
 /* Container */
 .container {

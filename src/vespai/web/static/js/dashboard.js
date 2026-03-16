@@ -503,6 +503,28 @@ function updateStats() {
         .then(response => response.json())
         .then(data => {
             try {
+            // --- PATCH START: Update motion/save LEDs ---
+            const motionLed = document.getElementById('motion-led');
+            if (motionLed) {
+                if (data.enable_motion_detection) {
+                    motionLed.style.background = '#00ff88';
+                    motionLed.style.boxShadow = '0 0 8px #00ff88, 0 0 16px #00ff88';
+                } else {
+                    motionLed.style.background = '#444';
+                    motionLed.style.boxShadow = 'none';
+                }
+            }
+            const saveLed = document.getElementById('save-led');
+            if (saveLed) {
+                if (data.save_detections) {
+                    saveLed.style.background = '#00ff88';
+                    saveLed.style.boxShadow = '0 0 8px #00ff88, 0 0 16px #00ff88';
+                } else {
+                    saveLed.style.background = '#444';
+                    saveLed.style.boxShadow = 'none';
+                }
+            }
+            // --- PATCH END ---
             latestDetectionPreviewDataUrl = data.last_detection_preview || null;
             latestDetectionPreviewFrameId = data.last_detection_preview_frame_id || null;
             // Check system health

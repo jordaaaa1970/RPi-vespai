@@ -85,11 +85,18 @@ def register_routes(app, stats, hourly_detections, app_instance):
     def index():
         """
         Serve the main dashboard page with live video feed and statistics.
-        
         Returns:
             str: HTML content for the main VespAI dashboard
         """
-        response = app.make_response(render_template('dashboard.html', timestamp=int(time.time())))
+        # Get model name/path for display
+        model_path = getattr(getattr(app_instance, 'model_manager', None), 'model_path', None)
+        model_name = None
+        if model_path:
+            import os
+            # Show last two path components for clarity
+            parts = os.path.normpath(model_path).split(os.sep)
+            model_name = '/'.join(parts[-2:]) if len(parts) > 1 else parts[-1]
+        response = app.make_response(render_template('dashboard.html', timestamp=int(time.time()), model_name=model_name))
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
@@ -348,6 +355,15 @@ def register_routes(app, stats, hourly_detections, app_instance):
         hourly_data_4h = hourly_data_cache['data_4h']
 
         response_data = dict(stats)
+        # Inject config values for UI LEDs (always current)
+        try:
+            from vespai.main import VespAIApplication
+            app_config = getattr(app_instance, 'config', None)
+            if app_config:
+                response_data['enable_motion_detection'] = app_config.get('enable_motion_detection', False)
+                response_data['save_detections'] = app_config.get('save_detections', False)
+        except Exception as e:
+            logger.warning(f"Could not inject config values for LEDs: {e}")
         response_data.pop("detection_frames", None)
         response_data["hourly_data"] = hourly_data_24h  # Default to 24h for backward compatibility
         response_data["hourly_data_24h"] = hourly_data_24h  # Detailed 24-hour data

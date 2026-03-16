@@ -22,6 +22,8 @@ from pathlib import Path
 from typing import Tuple, Optional, Dict, Any, List
 from collections import deque
 import torch
+import yaml
+import ncnn
 
 # Suppress specific PyTorch autocast deprecation warning from YOLOv5
 warnings.filterwarnings("ignore", message=".*torch.cuda.amp.autocast.*", category=FutureWarning)
@@ -563,6 +565,41 @@ class ModelManager:
         self.onnx_input_name = None
         self.onnx_input_scale_mode = "auto"
     
+    def _is_ncnn_model_dir(self, model_path: str) -> bool:
+        """Detect if the model path is an NCNN model directory."""
+        if not model_path:
+            return False
+        p = Path(model_path)
+        return p.is_dir() and (p / "model.ncnn.param").exists() and (p / "model.ncnn.bin").exists()
+
+    def _load_ncnn_model(self):
+        """Load NCNN model from directory."""
+        model_dir = Path(self.model_path)
+        param_path = str(model_dir / "model.ncnn.param")
+        bin_path = str(model_dir / "model.ncnn.bin")
+        self.ncnn_net = ncnn.Net()
+        self.ncnn_net.load_param(param_path)
+        self.ncnn_net.load_model(bin_path)
+        self.model_family = "ncnn"
+        self.class_names = self._load_ncnn_class_names(model_dir)
+        return self.ncnn_net
+
+    def _load_ncnn_class_names(self, model_dir: Path) -> dict:
+        meta_path = model_dir / "metadata.yaml"
+        if not meta_path.exists():
+            return {i: f"class{i}" for i in range(4)}
+        try:
+            with open(meta_path, "r") as f:
+                meta = yaml.safe_load(f)
+            names = meta.get("names")
+            if isinstance(names, dict):
+                return {int(k): v for k, v in names.items()}
+            if isinstance(names, list):
+                return {i: v for i, v in enumerate(names)}
+        except Exception:
+            pass
+        return {i: f"class{i}" for i in range(4)}
+
     def load_model(self) -> Any:
         """
         Load YOLO model with multiple fallback methods.
@@ -599,7 +636,9 @@ class ModelManager:
                 ".onnx, .tflite, .engine, or TensorFlow SavedModel."
             )
 
-        if self._is_nhwc_onnx_model(self.model_path):
+        if self._is_ncnn_model_dir(self.model_path):
+            loading_methods = [self._load_ncnn_model]
+        elif self._is_nhwc_onnx_model(self.model_path):
             loading_methods = [self._load_nhwc_onnx_runtime]
         elif self._is_yolov8_model_path(self.model_path):
             loading_methods = [self._load_via_ultralytics]
@@ -736,22 +775,26 @@ class ModelManager:
     
     def _find_model_file(self) -> bool:
         """
-        Find the model file using fallback paths.
-        
+        Find the model file or NCNN model directory using fallback paths.
         Returns:
-            bool: True if model file found and updated self.model_path
+            bool: True if model file or NCNN dir found and updated self.model_path
         """
         import os
+        from pathlib import Path
 
-        if self.model_path and os.path.exists(self.model_path):
-            return True
+        # Accept NCNN model directory as valid
+        if self.model_path:
+            p = Path(self.model_path)
+            if p.is_dir() and (p / "model.ncnn.param").exists() and (p / "model.ncnn.bin").exists():
+                return True
+            if os.path.exists(self.model_path):
+                return True
 
         # Resolve repository root from this file location:
-        # src/vespai/core/detection.py -> repo root is parents[3]
         repo_root = Path(__file__).resolve().parents[3]
-        
         # Try alternative paths
         alternative_paths = [
+            str(repo_root / "models" / "L4-YOLOV26-asianhornet_2026-03-13_08-57-52_ncnn_model"),
             str(repo_root / "models" / "L4-YOLOV26-asianhornet_2026-03-13_08-57-52.onnx"),
             str(repo_root / "models" / "L4-yolov8_asianhornet_2026-03-06_19-45-38.onnx"),
             str(repo_root / "models" / "L4-yolov8_asianhornet_2026-02-25_08-31-37.keras"),
@@ -768,13 +811,16 @@ class ModelManager:
             os.path.join(os.getcwd(), "..", "yolov5s.pt"),
             os.path.join(os.getcwd(), "yolov5s.pt")
         ]
-        
         for path in alternative_paths:
+            p = Path(path)
+            if p.is_dir() and (p / "model.ncnn.param").exists() and (p / "model.ncnn.bin").exists():
+                logger.info("Using alternative NCNN model dir: %s", path)
+                self.model_path = path
+                return True
             if os.path.exists(path):
                 logger.info("Using alternative model path: %s", path)
                 self.model_path = path
                 return True
-        
         return False
 
     def _load_via_ultralytics(self):
@@ -976,16 +1022,13 @@ class ModelManager:
     def predict(self, frame: np.ndarray):
         """
         Run inference on a frame.
-        
-        Args:
-            frame: Input image frame
-            
-        Returns:
-            Model predictions
         """
         if not self.model:
             raise RuntimeError("Model not loaded")
-        
+
+        if self.model_family == "ncnn":
+            return self._predict_ncnn(frame)
+
         if self.model_family == "onnx_nhwc":
             return self._predict_onnx_nhwc(frame)
 
@@ -995,6 +1038,26 @@ class ModelManager:
         # Convert BGR to RGB for YOLOv5
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         return self.model(rgb_frame)
+
+    def _predict_ncnn(self, frame: np.ndarray):
+        """
+        Run inference using NCNN model. Assumes model expects 512x512 RGB input.
+        """
+        # Preprocess: resize and convert to RGB
+        img = cv2.resize(frame, (512, 512))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = img.astype(np.float32) / 255.0
+        # NCNN expects CHW
+        img = np.transpose(img, (2, 0, 1))
+        # Create NCNN Mat
+        mat = ncnn.Mat(img)
+        with self.ncnn_net.create_extractor() as ex:
+            ex.input("in0", mat)
+            _, out0 = ex.extract("out0")
+            out_np = np.array(out0)
+        # Postprocess: dummy output for now (user should adapt to their model)
+        # Return a dict for compatibility
+        return {"ncnn_output": out_np}
 
     def _predict_onnx_nhwc(self, frame: np.ndarray):
         """Run direct ONNXRuntime inference for NHWC YOLOv8-style models."""

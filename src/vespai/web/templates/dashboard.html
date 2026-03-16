@@ -41,8 +41,16 @@
                     </button>
                 </div>
                 <div class="status-item">
-                    <div class="live-indicator"></div>
-                    <span data-key="live">Live</span>
+                    <div class="live-indicator" title="Web"></div>
+                    <span data-key="web">Web</span>
+                </div>
+                <div class="status-item">
+                    <div class="motion-indicator" id="motion-led" title="Motion Detection"></div>
+                    <span data-key="motion">Motion</span>
+                </div>
+                <div class="status-item">
+                    <div class="save-indicator" id="save-led" title="Save Detections"></div>
+                    <span data-key="save">Save</span>
                 </div>
                 <div class="status-item">
                     <i class="fas fa-clock"></i>
@@ -212,5 +220,46 @@
     </div>
 
     <script src="/static/js/dashboard.js?t={{ timestamp }}"></script>
+    <script>
+    // Update motion and save LEDs based on /api/stats
+    function updateLeds(stats) {
+        const motionLed = document.getElementById('motion-led');
+        const saveLed = document.getElementById('save-led');
+        if (motionLed) {
+            if (stats.enable_motion_detection) {
+                motionLed.style.background = '#00ff88';
+                motionLed.style.boxShadow = '0 0 8px #00ff88';
+            } else {
+                motionLed.style.background = '#444';
+                motionLed.style.boxShadow = 'none';
+            }
+        }
+        if (saveLed) {
+            if (stats.save_detections) {
+                saveLed.style.background = '#ffa500';
+                saveLed.style.boxShadow = '0 0 8px #ffa500';
+            } else {
+                saveLed.style.background = '#444';
+                saveLed.style.boxShadow = 'none';
+            }
+        }
+    }
+    // Patch dashboard.js fetchStats to call updateLeds
+    (function() {
+        const origFetchStats = window.fetchStats;
+        window.fetchStats = function() {
+            return origFetchStats.apply(this, arguments).then(stats => {
+                updateLeds(stats);
+                return stats;
+            });
+        };
+    })();
+    </script>
+</body>
+    <!-- Footer: Model Info -->
+    <footer style="width:100%;text-align:center;padding:12px 0 8px 0;font-size:1.05em;color:#888;background:rgba(0,0,0,0.04);margin-top:32px;">
+        <span>Model loaded:</span>
+        <strong>{{ model_name or 'Unknown' }}</strong>
+    </footer>
 </body>
 </html>
