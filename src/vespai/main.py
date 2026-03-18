@@ -227,6 +227,41 @@ class VespAIApplication:
         
         self.model_manager = ModelManager(model_path, confidence)
         self.model_manager.load_model()
+
+    def _build_model_debug_summary(self, results: Optional[Dict[str, Any]] = None) -> str:
+        """Build a user-facing model status summary for the dashboard."""
+        if isinstance(results, dict):
+            runtime_summary = str(results.get('debug_summary', '')).strip()
+            if runtime_summary:
+                return runtime_summary
+
+        if not self.model_manager:
+            return ''
+
+        family_raw = str(getattr(self.model_manager, 'model_family', '') or '').strip()
+        family_map = {
+            'onnx_nhwc': 'ONNX',
+            'yolov8': 'YOLOv8',
+            'yolov5': 'YOLOv5',
+            'ncnn': 'NCNN',
+        }
+        family = family_map.get(family_raw.lower(), family_raw.upper() if family_raw else '')
+
+        model_path = str(getattr(self.model_manager, 'model_path', '') or '').strip()
+        model_name = Path(model_path).name if model_path else ''
+
+        class_names = getattr(self.model_manager, 'class_names', {}) or {}
+        class_count = len(class_names) if isinstance(class_names, dict) else 0
+
+        parts = []
+        if family:
+            parts.append(family)
+        if model_name:
+            parts.append(model_name)
+        if class_count > 0:
+            parts.append(f"classes={class_count}")
+
+        return ' | '.join(parts) if parts else 'model loaded'
     
     def _initialize_detection_processor(self):
         """Initialize detection processor."""
@@ -237,6 +272,7 @@ class VespAIApplication:
                 self.model_manager.class_names,
                 self.config.get('class_map', ''),
             )
+            self.detection_processor.stats['model_debug_summary'] = self._build_model_debug_summary()
     
     def _initialize_sms(self):
         """Initialize SMS manager."""
@@ -473,10 +509,7 @@ class VespAIApplication:
             results = self.model_manager.predict(frame)
             inference_ms = (time.time() - predict_started) * 1000.0
             self.detection_processor.record_inference_timing(frame_count, source_label, inference_ms)
-            if isinstance(results, dict):
-                self.detection_processor.stats['model_debug_summary'] = results.get('debug_summary', '')
-            else:
-                self.detection_processor.stats['model_debug_summary'] = ''
+            self.detection_processor.stats['model_debug_summary'] = self._build_model_debug_summary(results)
             return self.detection_processor.process_detections(
                 results,
                 frame,
@@ -486,7 +519,7 @@ class VespAIApplication:
             )
         except Exception as e:
             logger.error(f"Detection error: {e}")
-            self.detection_processor.stats['model_debug_summary'] = ''
+            self.detection_processor.stats['model_debug_summary'] = self._build_model_debug_summary()
             return 0, 0, frame.copy()
 
     def _ensure_dataset_executor(self):
@@ -524,7 +557,7 @@ class VespAIApplication:
                 results, inference_ms = future.result()
             except Exception as error:
                 logger.error("Detection error: %s", error)
-                self.detection_processor.stats['model_debug_summary'] = ''
+                self.detection_processor.stats['model_debug_summary'] = self._build_model_debug_summary()
                 continue
 
             self.detection_processor.record_inference_timing(frame_count, source_label, inference_ms)
@@ -536,10 +569,7 @@ class VespAIApplication:
                 self.config.get('confidence_threshold'),
                 log_frame_prediction=True,
             )
-            if isinstance(results, dict):
-                self.detection_processor.stats['model_debug_summary'] = results.get('debug_summary', '')
-            else:
-                self.detection_processor.stats['model_debug_summary'] = ''
+            self.detection_processor.stats['model_debug_summary'] = self._build_model_debug_summary(results)
 
             if velutina_count > 0 or crabro_count > 0:
                 self._handle_detection(velutina_count, crabro_count, frame_count, annotated_frame)

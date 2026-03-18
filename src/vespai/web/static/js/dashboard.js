@@ -343,6 +343,20 @@ let lastPreviewFrameId = -1;
 let latestDetectionPreviewDataUrl = null;
 let latestDetectionPreviewFrameId = null;
 
+function setPreviewImageState(previewImage, src) {
+    if (!previewImage) {
+        return;
+    }
+
+    if (src) {
+        previewImage.src = src;
+        previewImage.style.display = 'block';
+    } else {
+        previewImage.removeAttribute('src');
+        previewImage.style.display = 'none';
+    }
+}
+
 function updateLastDetectionPreview(frameId) {
     const previewImage = document.getElementById('source-preview');
     if (!previewImage || !frameId || frameId === lastPreviewFrameId) {
@@ -351,11 +365,11 @@ function updateLastDetectionPreview(frameId) {
 
     lastPreviewFrameId = frameId;
     if (latestDetectionPreviewDataUrl && latestDetectionPreviewFrameId === frameId) {
-        previewImage.src = latestDetectionPreviewDataUrl;
+        setPreviewImageState(previewImage, latestDetectionPreviewDataUrl);
         return;
     }
 
-    previewImage.src = `/api/detection_frame/${frameId}?ts=${Date.now()}`;
+    setPreviewImageState(previewImage, `/api/detection_frame/${frameId}?ts=${Date.now()}`);
 }
 
 // Update time
@@ -414,10 +428,18 @@ function updateLog(logData) {
             const detectedText = translations[currentLang]['detected'] || 'detected';
             const confidenceText = translations[currentLang]['confidence'] || 'confidence';
             
-            logEntry.innerHTML = `
-                <div class="log-time"><i class="fas fa-clock"></i> ${entry.timestamp || 'Unknown time'}</div>
-                <div>${speciesText} ${detectedText} (${confidenceText}: ${entry.confidence || 'Unknown'}%)</div>
-            `;
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'log-time';
+            const clockIcon = document.createElement('i');
+            clockIcon.className = 'fas fa-clock';
+            timeDiv.appendChild(clockIcon);
+            timeDiv.appendChild(document.createTextNode(` ${entry.timestamp || 'Unknown time'}`));
+
+            const detailsDiv = document.createElement('div');
+            detailsDiv.textContent = `${speciesText} ${detectedText} (${confidenceText}: ${entry.confidence || 'Unknown'}%)`;
+
+            logEntry.appendChild(timeDiv);
+            logEntry.appendChild(detailsDiv);
             logEntry.dataset.id = entryId;
             if (entry.frame_id) {
                 logEntry.dataset.frameId = entry.frame_id;
@@ -642,7 +664,7 @@ function updateStats() {
                 } else if (!previewFrameId) {
                     if (lastPreviewFrameId !== null) {
                         lastPreviewFrameId = null;
-                        previewImage.removeAttribute('src');
+                        setPreviewImageState(previewImage, null);
                     }
                 }
             }
