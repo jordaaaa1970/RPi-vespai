@@ -1459,20 +1459,7 @@ class DetectionProcessor:
                 self.class_names,
             )
 
-        if self.class_names:
-            labels_summary = ", ".join(
-                f"{class_id}={label}" for class_id, label in sorted(self.class_names.items())
-            )
-            self.stats["detection_log"].appendleft({
-                "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
-                "species": "model-info",
-                "confidence": "-",
-                "frame_id": None,
-                "model_label": f"Model labels: {labels_summary}",
-                "class_id": -1,
-                "velutina_count": 0,
-                "crabro_count": 0,
-            })
+        # Keep detection log reserved for actual runtime detections.
         
     def process_detections(self, 
                           results, 

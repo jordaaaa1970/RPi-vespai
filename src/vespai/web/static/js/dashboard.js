@@ -640,10 +640,9 @@ function updateStats() {
                 if (previewFrameId && previewFrameId !== lastPreviewFrameId) {
                     updateLastDetectionPreview(previewFrameId);
                 } else if (!previewFrameId) {
-                    const currentFrameId = data.frame_id || 0;
-                    if (`current-${currentFrameId}` !== lastPreviewFrameId) {
-                        lastPreviewFrameId = `current-${currentFrameId}`;
-                        previewImage.src = `/api/current_frame?ts=${Date.now()}`;
+                    if (lastPreviewFrameId !== null) {
+                        lastPreviewFrameId = null;
+                        previewImage.removeAttribute('src');
                     }
                 }
             }
