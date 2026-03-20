@@ -180,6 +180,10 @@
             <div class="system-stat">
                 <div class="system-value" id="cpu-usage">0%</div>
                 <div class="system-label" data-key="cpu-usage">CPU Usage</div>
+                <button class="insights-toggle insights-inline" id="insights-toggle" type="button" title="Insights">
+                    <i class="fas fa-chart-pie"></i>
+                    <span data-key="insights">Insights</span>
+                </button>
             </div>
             <div class="system-stat">
                 <div class="system-value" id="ram-usage">0%</div>
@@ -188,6 +192,47 @@
             <div class="system-stat">
                 <div class="system-value" id="uptime-sys">0h 0m</div>
                 <div class="system-label" data-key="uptime">Uptime</div>
+            </div>
+        </div>
+
+        <div class="chart-card insights-panel" id="insights-panel" hidden>
+            <h3 style="margin-bottom: 1rem;" id="insights-title">
+                <i class="fas fa-chart-pie" style="color: var(--warning);"></i>
+                <span data-key="perf-breakdown-title">Performance Breakdown</span>
+            </h3>
+            <div class="inference-meta-line inference-summary-line" style="margin-top: 0;">
+                <span data-key="rolling-window">Rolling Window</span>
+                <strong id="perf-window-seconds">0s</strong>
+                <span data-key="samples">Samples</span>
+                <strong id="perf-window-samples">0</strong>
+            </div>
+            <div class="perf-stack" id="perf-stack" aria-label="Performance section percentages">
+                <div class="perf-segment capture" id="perf-segment-capture" style="width: 0%">0%</div>
+                <div class="perf-segment inference" id="perf-segment-inference" style="width: 0%">0%</div>
+                <div class="perf-segment postprocess" id="perf-segment-postprocess" style="width: 0%">0%</div>
+                <div class="perf-segment web" id="perf-segment-web" style="width: 0%">0%</div>
+            </div>
+            <div class="perf-metrics-grid">
+                <div class="perf-metric">
+                    <div class="perf-metric-label" data-key="capture">Capture</div>
+                    <div class="perf-metric-value" id="perf-capture-pct">0.0%</div>
+                    <div class="perf-metric-sub" id="perf-capture-ms">0 ms</div>
+                </div>
+                <div class="perf-metric">
+                    <div class="perf-metric-label" data-key="inference">Inference</div>
+                    <div class="perf-metric-value" id="perf-inference-pct">0.0%</div>
+                    <div class="perf-metric-sub" id="perf-inference-ms">0 ms</div>
+                </div>
+                <div class="perf-metric">
+                    <div class="perf-metric-label" data-key="postprocess">Postprocess</div>
+                    <div class="perf-metric-value" id="perf-postprocess-pct">0.0%</div>
+                    <div class="perf-metric-sub" id="perf-postprocess-ms">0 ms</div>
+                </div>
+                <div class="perf-metric">
+                    <div class="perf-metric-label" data-key="web">Web</div>
+                    <div class="perf-metric-value" id="perf-web-pct">0.0%</div>
+                    <div class="perf-metric-sub" id="perf-web-ms">0 ms</div>
+                </div>
             </div>
         </div>
 

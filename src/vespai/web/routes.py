@@ -277,6 +277,31 @@ def register_routes(app, stats, hourly_detections, app_instance):
             'dataset_path': source_state.get('dataset_path', ''),
         }), status_code
 
+    @app.route('/api/perf_breakdown')
+    def api_perf_breakdown():
+        """Return rolling section timing percentages for capture/inference/postprocess/web."""
+        try:
+            return jsonify(app_instance.get_perf_breakdown())
+        except Exception as e:
+            logger.error("Failed to build perf breakdown: %s", e)
+            return jsonify({
+                'window_sample_count': 0,
+                'window_seconds': 0.0,
+                'totals_ms': {
+                    'capture_ms': 0.0,
+                    'inference_ms': 0.0,
+                    'postprocess_ms': 0.0,
+                    'web_ms': 0.0,
+                },
+                'percentages': {
+                    'capture': 0.0,
+                    'inference': 0.0,
+                    'postprocess': 0.0,
+                    'web': 0.0,
+                },
+                'error': str(e),
+            }), 500
+
     @app.route('/api/stats')
     def api_stats():
         """

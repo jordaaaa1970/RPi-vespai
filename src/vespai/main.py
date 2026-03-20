@@ -17,7 +17,7 @@ import signal
 import os
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 from collections import deque
 
 # Core modules
@@ -98,6 +98,10 @@ class VespAIApplication:
         self.current_dataset_path = ''
         self.dataset_executor = None
         self.dataset_prediction_queue = deque()
+
+        # Lightweight rolling perf tracking for section-level timing breakdown.
+        self.perf_lock = threading.Lock()
+        self.perf_window = deque(maxlen=300)
         
         # Global state for web interface
         self.web_frame = None
@@ -106,6 +110,71 @@ class VespAIApplication:
         # Set up signal handlers
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
+
+    def _record_perf_sample(
+        self,
+        capture_ms: float = 0.0,
+        inference_ms: float = 0.0,
+        postprocess_ms: float = 0.0,
+        web_ms: float = 0.0,
+        frame_id: Optional[int] = None,
+    ):
+        """Record one lightweight timing sample for rolling performance breakdown."""
+        sample = {
+            'ts': time.time(),
+            'frame_id': frame_id,
+            'capture_ms': max(0.0, float(capture_ms)),
+            'inference_ms': max(0.0, float(inference_ms)),
+            'postprocess_ms': max(0.0, float(postprocess_ms)),
+            'web_ms': max(0.0, float(web_ms)),
+        }
+        with self.perf_lock:
+            self.perf_window.append(sample)
+
+    def get_perf_breakdown(self) -> Dict[str, Any]:
+        """Return section timing breakdown across a rolling window."""
+        with self.perf_lock:
+            samples: List[Dict[str, Any]] = list(self.perf_window)
+
+        totals = {
+            'capture_ms': 0.0,
+            'inference_ms': 0.0,
+            'postprocess_ms': 0.0,
+            'web_ms': 0.0,
+        }
+
+        for sample in samples:
+            totals['capture_ms'] += float(sample.get('capture_ms', 0.0) or 0.0)
+            totals['inference_ms'] += float(sample.get('inference_ms', 0.0) or 0.0)
+            totals['postprocess_ms'] += float(sample.get('postprocess_ms', 0.0) or 0.0)
+            totals['web_ms'] += float(sample.get('web_ms', 0.0) or 0.0)
+
+        total_ms = sum(totals.values())
+        if total_ms > 0:
+            pct = {
+                'capture': round((totals['capture_ms'] / total_ms) * 100.0, 2),
+                'inference': round((totals['inference_ms'] / total_ms) * 100.0, 2),
+                'postprocess': round((totals['postprocess_ms'] / total_ms) * 100.0, 2),
+                'web': round((totals['web_ms'] / total_ms) * 100.0, 2),
+            }
+        else:
+            pct = {
+                'capture': 0.0,
+                'inference': 0.0,
+                'postprocess': 0.0,
+                'web': 0.0,
+            }
+
+        window_seconds = 0.0
+        if len(samples) >= 2:
+            window_seconds = max(0.0, float(samples[-1]['ts'] - samples[0]['ts']))
+
+        return {
+            'window_sample_count': len(samples),
+            'window_seconds': round(window_seconds, 2),
+            'totals_ms': {k: round(v, 3) for k, v in totals.items()},
+            'percentages': pct,
+        }
     
     def initialize(self, args=None):
         """
@@ -357,6 +426,7 @@ class VespAIApplication:
             while self.running:
                 loop_start = time.time()
                 self._drain_completed_dataset_predictions()
+                web_ms = 0.0
                 
                 # Watchdog: Detect if system is hanging
                 current_time = time.time()
@@ -367,11 +437,13 @@ class VespAIApplication:
                 
                 # Read frame from camera with timeout
                 try:
+                    capture_started = time.perf_counter()
                     with self.source_lock:
                         active_camera_manager = self.camera_manager
                         success, frame = active_camera_manager.read_frame()
                         source_exhausted = active_camera_manager.source_exhausted()
                         finite_source = active_camera_manager.is_finite_source()
+                    capture_ms = (time.perf_counter() - capture_started) * 1000.0
 
                     if not success or frame is None:
                         if source_exhausted:
@@ -381,9 +453,11 @@ class VespAIApplication:
                                 logger.error("Failed to switch back to live camera: %s", message)
                                 self.running = False
                                 break
+                            self._record_perf_sample(capture_ms=capture_ms, web_ms=web_ms)
                             time.sleep(0.2)
                             continue
                         logger.warning("Failed to read frame, retrying...")
+                        self._record_perf_sample(capture_ms=capture_ms, web_ms=web_ms)
                         time.sleep(0.1)
                         continue
                         
@@ -391,6 +465,7 @@ class VespAIApplication:
                     
                 except Exception as e:
                     logger.error(f"Camera error: {e}")
+                    self._record_perf_sample(web_ms=web_ms)
                     time.sleep(1)
                     continue
                 
@@ -416,33 +491,40 @@ class VespAIApplication:
 
                 if finite_source and self.config.get('enable_web'):
                     try:
+                        web_started = time.perf_counter()
                         display_frame = cv2.resize(frame, (480, 270))
                         with self.web_lock:
                             self.web_frame = display_frame.copy()
+                        web_ms += (time.perf_counter() - web_started) * 1000.0
                     except Exception as e:
                         logger.error(f"Web frame update error: {e}")
                 
                 if finite_source:
+                    inference_ms = 0.0
+                    postprocess_ms = 0.0
                     dataset_delay = self.config.get('dataset_frame_delay', 0.6)
                     if dataset_delay >= 4.0:
-                        velutina_count, crabro_count, annotated_frame = self._run_detection_step(frame, frame_count, finite_source, current_source)
+                        velutina_count, crabro_count, annotated_frame, inference_ms, postprocess_ms = self._run_detection_step(frame, frame_count, finite_source, current_source)
 
                         if velutina_count > 0 or crabro_count > 0:
                             self._handle_detection(velutina_count, crabro_count, frame_count, annotated_frame)
 
                         if self.config.get('enable_web'):
                             try:
+                                web_started = time.perf_counter()
                                 display_frame = cv2.resize(annotated_frame, (480, 270))
                                 with self.web_lock:
                                     self.web_frame = display_frame.copy()
+                                web_ms += (time.perf_counter() - web_started) * 1000.0
                             except Exception as e:
                                 logger.error(f"Web frame update error: {e}")
                     else:
+                        velutina_count, crabro_count = 0, 0
                         self._submit_dataset_prediction(frame_count, frame)
                         if len(self.dataset_prediction_queue) > 2:
                             self._drain_completed_dataset_predictions(wait_for_one=True)
                 else:
-                    velutina_count, crabro_count, annotated_frame = self._run_detection_step(frame, frame_count, finite_source, current_source)
+                    velutina_count, crabro_count, annotated_frame, inference_ms, postprocess_ms = self._run_detection_step(frame, frame_count, finite_source, current_source)
 
                     # Handle detections
                     if velutina_count > 0 or crabro_count > 0:
@@ -452,11 +534,21 @@ class VespAIApplication:
                     if self.config.get('enable_web'):
                         try:
                             # Reduce resolution for better Raspberry Pi performance
+                            web_started = time.perf_counter()
                             display_frame = cv2.resize(annotated_frame, (480, 270))
                             with self.web_lock:
                                 self.web_frame = display_frame.copy()
+                            web_ms += (time.perf_counter() - web_started) * 1000.0
                         except Exception as e:
                             logger.error(f"Web frame update error: {e}")
+
+                self._record_perf_sample(
+                    capture_ms=capture_ms,
+                    inference_ms=inference_ms,
+                    postprocess_ms=postprocess_ms,
+                    web_ms=web_ms,
+                    frame_id=frame_count,
+                )
                 
                 # Force stats update every 10 seconds to keep web interface alive
                 if current_time - last_stats_update > 10:
@@ -503,24 +595,27 @@ class VespAIApplication:
         return True
 
     def _run_detection_step(self, frame, frame_count: int, finite_source: bool, source_label: str = ""):
-        """Run one detection step and return counts plus annotated frame."""
+        """Run one detection step and return counts, annotated frame, and timing metrics."""
         try:
-            predict_started = time.time()
+            predict_started = time.perf_counter()
             results = self.model_manager.predict(frame)
-            inference_ms = (time.time() - predict_started) * 1000.0
+            inference_ms = (time.perf_counter() - predict_started) * 1000.0
             self.detection_processor.record_inference_timing(frame_count, source_label, inference_ms)
             self.detection_processor.stats['model_debug_summary'] = self._build_model_debug_summary(results)
-            return self.detection_processor.process_detections(
+            postprocess_started = time.perf_counter()
+            velutina_count, crabro_count, annotated_frame = self.detection_processor.process_detections(
                 results,
                 frame,
                 frame_count,
                 self.config.get('confidence_threshold'),
                 log_frame_prediction=finite_source,
             )
+            postprocess_ms = (time.perf_counter() - postprocess_started) * 1000.0
+            return velutina_count, crabro_count, annotated_frame, inference_ms, postprocess_ms
         except Exception as e:
             logger.error(f"Detection error: {e}")
             self.detection_processor.stats['model_debug_summary'] = self._build_model_debug_summary()
-            return 0, 0, frame.copy()
+            return 0, 0, frame.copy(), 0.0, 0.0
 
     def _ensure_dataset_executor(self):
         if self.dataset_executor is None:
@@ -562,6 +657,7 @@ class VespAIApplication:
 
             self.detection_processor.record_inference_timing(frame_count, source_label, inference_ms)
 
+            postprocess_started = time.perf_counter()
             velutina_count, crabro_count, annotated_frame = self.detection_processor.process_detections(
                 results,
                 frame,
@@ -569,7 +665,16 @@ class VespAIApplication:
                 self.config.get('confidence_threshold'),
                 log_frame_prediction=True,
             )
+            postprocess_ms = (time.perf_counter() - postprocess_started) * 1000.0
             self.detection_processor.stats['model_debug_summary'] = self._build_model_debug_summary(results)
+
+            self._record_perf_sample(
+                capture_ms=0.0,
+                inference_ms=inference_ms,
+                postprocess_ms=postprocess_ms,
+                web_ms=0.0,
+                frame_id=frame_count,
+            )
 
             if velutina_count > 0 or crabro_count > 0:
                 self._handle_detection(velutina_count, crabro_count, frame_count, annotated_frame)

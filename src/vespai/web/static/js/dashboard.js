@@ -31,6 +31,13 @@ const translations = {
         'inference-avg-inline': 'Avg',
         'inference-min-inline': 'Min',
         'inference-max-inline': 'Max',
+        'insights': 'Insights',
+        'perf-breakdown-title': 'Performance Breakdown',
+        'rolling-window': 'Rolling Window',
+        'samples': 'Samples',
+        'capture': 'Capture',
+        'inference': 'Inference',
+        'postprocess': 'Postprocess',
         'asian-hornet': 'Asian Hornet',
         'european-hornet': 'European Hornet',
         'uptime-prefix': 'Uptime:',
@@ -73,6 +80,13 @@ const translations = {
         'inference-avg-inline': 'Ø',
         'inference-min-inline': 'Min',
         'inference-max-inline': 'Max',
+        'insights': 'Insights',
+        'perf-breakdown-title': 'Leistungsaufteilung',
+        'rolling-window': 'Gleitendes Fenster',
+        'samples': 'Proben',
+        'capture': 'Erfassung',
+        'inference': 'Inferenz',
+        'postprocess': 'Nachverarbeitung',
         'asian-hornet': 'Asiatische Hornisse',
         'european-hornet': 'Europäische Hornisse',
         'uptime-prefix': 'Laufzeit:',
@@ -111,6 +125,13 @@ const translations = {
         'inference-avg-inline': 'Moy',
         'inference-min-inline': 'Min',
         'inference-max-inline': 'Max',
+        'insights': 'Aperçus',
+        'perf-breakdown-title': 'Répartition des performances',
+        'rolling-window': 'Fenêtre glissante',
+        'samples': 'Échantillons',
+        'capture': 'Capture',
+        'inference': 'Inférence',
+        'postprocess': 'Post-traitement',
         'asian-hornet': 'Frelon asiatique',
         'european-hornet': 'Frelon européen',
         'uptime-prefix': 'Temps de fonctionnement :',
@@ -164,6 +185,104 @@ let sourceToggleInitialized = false;
 let currentInputMode = 'camera';
 let lastRenderedInputMode = null;
 let mainFeedInterval = null;
+let insightsVisible = localStorage.getItem('vespai-insights-visible') === '1';
+
+function applyInsightsVisibility() {
+    const panel = document.getElementById('insights-panel');
+    const toggle = document.getElementById('insights-toggle');
+    if (!panel || !toggle) {
+        return;
+    }
+
+    if (insightsVisible) {
+        panel.hidden = false;
+        toggle.classList.add('active');
+        updatePerfBreakdown();
+    } else {
+        panel.hidden = true;
+        toggle.classList.remove('active');
+    }
+}
+
+function initInsightsToggle() {
+    const toggle = document.getElementById('insights-toggle');
+    if (!toggle) {
+        return;
+    }
+
+    toggle.addEventListener('click', function() {
+        insightsVisible = !insightsVisible;
+        localStorage.setItem('vespai-insights-visible', insightsVisible ? '1' : '0');
+        applyInsightsVisibility();
+    });
+
+    applyInsightsVisibility();
+}
+
+function setPerfSegment(id, pct, label) {
+    const segment = document.getElementById(id);
+    if (!segment) {
+        return;
+    }
+    const safePct = Math.max(0, Math.min(100, Number(pct) || 0));
+    segment.style.width = `${safePct}%`;
+    segment.textContent = safePct >= 7 ? `${safePct.toFixed(1)}%` : '';
+    segment.title = `${label}: ${safePct.toFixed(1)}%`;
+}
+
+function updatePerfBreakdown() {
+    if (!insightsVisible) {
+        return;
+    }
+
+    fetch('/api/perf_breakdown')
+        .then(response => response.json())
+        .then(data => {
+            const percentages = data.percentages || {};
+            const totals = data.totals_ms || {};
+
+            const windowSecElement = document.getElementById('perf-window-seconds');
+            if (windowSecElement) {
+                windowSecElement.textContent = `${Number(data.window_seconds || 0).toFixed(1)}s`;
+            }
+
+            const sampleElement = document.getElementById('perf-window-samples');
+            if (sampleElement) {
+                sampleElement.textContent = `${data.window_sample_count || 0}`;
+            }
+
+            const capturePct = Number(percentages.capture || 0);
+            const inferencePct = Number(percentages.inference || 0);
+            const postprocessPct = Number(percentages.postprocess || 0);
+            const webPct = Number(percentages.web || 0);
+
+            setPerfSegment('perf-segment-capture', capturePct, 'Capture');
+            setPerfSegment('perf-segment-inference', inferencePct, 'Inference');
+            setPerfSegment('perf-segment-postprocess', postprocessPct, 'Postprocess');
+            setPerfSegment('perf-segment-web', webPct, 'Web');
+
+            const capturePctElement = document.getElementById('perf-capture-pct');
+            if (capturePctElement) capturePctElement.textContent = `${capturePct.toFixed(1)}%`;
+            const inferencePctElement = document.getElementById('perf-inference-pct');
+            if (inferencePctElement) inferencePctElement.textContent = `${inferencePct.toFixed(1)}%`;
+            const postprocessPctElement = document.getElementById('perf-postprocess-pct');
+            if (postprocessPctElement) postprocessPctElement.textContent = `${postprocessPct.toFixed(1)}%`;
+            const webPctElement = document.getElementById('perf-web-pct');
+            if (webPctElement) webPctElement.textContent = `${webPct.toFixed(1)}%`;
+
+            const captureMsElement = document.getElementById('perf-capture-ms');
+            if (captureMsElement) captureMsElement.textContent = `${Number(totals.capture_ms || 0).toFixed(1)} ms`;
+            const inferenceMsElement = document.getElementById('perf-inference-ms');
+            if (inferenceMsElement) inferenceMsElement.textContent = `${Number(totals.inference_ms || 0).toFixed(1)} ms`;
+            const postprocessMsElement = document.getElementById('perf-postprocess-ms');
+            if (postprocessMsElement) postprocessMsElement.textContent = `${Number(totals.postprocess_ms || 0).toFixed(1)} ms`;
+            const webMsElement = document.getElementById('perf-web-ms');
+            if (webMsElement) webMsElement.textContent = `${Number(totals.web_ms || 0).toFixed(1)} ms`;
+        })
+        .catch(error => {
+            console.error('VespAI Dashboard: Error fetching perf breakdown:', error);
+        });
+}
 
 function refreshMainVideoFeed() {
     const videoFeed = document.getElementById('video-feed');
@@ -258,6 +377,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize language
     translatePage();
     initSourceToggle();
+    initInsightsToggle();
     startMainVideoFeedPolling();
     
     // Add language switch event listeners
@@ -769,6 +889,8 @@ function showDetectionFrame(frameId) {
 // Update stats on a moderate cadence for Raspberry Pi performance
 let statsInterval = setInterval(updateStats, 5000);
 updateStats();
+let perfInterval = setInterval(updatePerfBreakdown, 5000);
+updatePerfBreakdown();
 
 // Prevent multiple intervals from running
 window.addEventListener('beforeunload', function() {
@@ -777,5 +899,8 @@ window.addEventListener('beforeunload', function() {
     }
     if (mainFeedInterval) {
         clearInterval(mainFeedInterval);
+    }
+    if (perfInterval) {
+        clearInterval(perfInterval);
     }
 });

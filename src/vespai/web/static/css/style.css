@@ -271,6 +271,35 @@ body::before {
     font-weight: 700;
 }
 
+.insights-toggle {
+    border: 1px solid rgba(0, 212, 255, 0.35);
+    background: rgba(0, 212, 255, 0.08);
+    color: #b8f4ff;
+    border-radius: 999px;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.insights-toggle:hover {
+    transform: translateY(-1px);
+    background: rgba(0, 212, 255, 0.14);
+    box-shadow: 0 0 14px rgba(0, 212, 255, 0.25);
+}
+
+.insights-toggle.active {
+    color: #001317;
+    background: linear-gradient(135deg, #00d4ff 0%, #79f0ff 100%);
+    border-color: transparent;
+    box-shadow: 0 0 18px rgba(0, 212, 255, 0.4);
+}
+
+.insights-inline {
+    margin-top: 0.45rem;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.75rem;
+}
+
 /* Fixed width for time displays to prevent resizing */
 #current-time {
     font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
@@ -698,6 +727,82 @@ body::before {
     margin-top: 1.5rem;
 }
 
+.insights-panel {
+    margin-top: 1rem;
+}
+
+.perf-stack {
+    margin: 0.5rem 0 1rem;
+    width: 100%;
+    height: 34px;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.04);
+}
+
+.perf-segment {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.95);
+    min-width: 0;
+    transition: width 0.35s ease;
+    white-space: nowrap;
+}
+
+.perf-segment.capture {
+    background: linear-gradient(135deg, #48cae4 0%, #0096c7 100%);
+}
+
+.perf-segment.inference {
+    background: linear-gradient(135deg, #ff6b35 0%, #ff9f1c 100%);
+}
+
+.perf-segment.postprocess {
+    background: linear-gradient(135deg, #80ed99 0%, #57cc99 100%);
+}
+
+.perf-segment.web {
+    background: linear-gradient(135deg, #b388eb 0%, #8093f1 100%);
+}
+
+.perf-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
+    gap: 0.8rem;
+}
+
+.perf-metric {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.03);
+    padding: 0.8rem;
+}
+
+.perf-metric-label {
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.4px;
+}
+
+.perf-metric-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-top: 0.25rem;
+}
+
+.perf-metric-sub {
+    color: var(--text-dim);
+    font-size: 0.76rem;
+    margin-top: 0.15rem;
+}
+
 .inference-meta-line {
     display: flex;
     align-items: center;
@@ -1031,6 +1136,24 @@ body::before {
         justify-content: center;
         flex-wrap: wrap;
         gap: 0.5rem;
+    }
+
+    .perf-metrics-grid {
+        grid-template-columns: repeat(2, minmax(110px, 1fr));
+    }
+
+    .perf-stack {
+        height: 28px;
+    }
+
+    .perf-segment {
+        font-size: 0.66rem;
+    }
+
+    .insights-inline {
+        margin-top: 0.35rem;
+        padding: 0.25rem 0.55rem;
+        font-size: 0.7rem;
     }
     
     .fps-display {
